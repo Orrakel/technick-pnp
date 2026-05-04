@@ -1,4 +1,4 @@
-# KondtAI Web Chat
+# Eldran Web Chat
 
 Dieses Projekt stellt Eldran als Web-Chatoberflaeche ueber Ollama bereit.
 
