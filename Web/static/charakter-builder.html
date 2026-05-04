@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eldran Charakter Builder</title>
+  <link rel="stylesheet" href="/static/style.css?v=18">
+</head>
+<body>
+  <main class="app-shell">
+    <aside class="sidebar">
+      <details class="burger-menu">
+        <summary class="burger-button" aria-label="Menue oeffnen"><span class="burger-icon" aria-hidden="true"></span></summary>
+        <div class="burger-menu-panel">
+          <nav class="top-nav burger-nav">
+            <a class="nav-link" data-surface-link="map" href="/karte">Karte</a>
+            <a class="nav-link" data-gm-only data-surface-link="battlemap" href="/battlemap">Battlemap</a>
+            <a class="nav-link" data-nav-link="sheet" href="/charakterbogen">Charakterbogen</a>
+            <a class="nav-link active" data-nav-link="builder" href="/charakter-builder">Builder</a>
+            <a class="nav-link" href="/wiki">Wiki</a>
+            <a class="nav-link hidden" data-admin-only href="/db">Datenbank</a>
+          </nav>
+          <div class="auth-strip burger-auth">
+            <span data-current-user class="file-meta"></span>
+            <button data-logout-button class="ghost-button compact-button" type="button">Logout</button>
+          </div>
+        </div>
+      </details>
+
+      <div class="brand character-brand">
+        <span class="brand-kicker">Nova Gaia</span>
+        <h1>Charakter Builder</h1>
+        <p>Schritt fuer Schritt durch Volk, Attribute, Disziplinen und Ausruestung. Jeder Schritt erklaert die Regel direkt an der Stelle.</p>
+      </div>
+
+      <section class="upload-panel">
+        <p class="eyebrow">Projekt</p>
+        <div class="character-project-card">
+          <div class="file-meta">Aktives Projekt</div>
+          <div id="builderProjectName" class="character-project-name">Wird geladen...</div>
+          <div id="builderProjectMeta" class="upload-hint">Der Builder speichert direkt in den projektgebundenen Charakterbogen.</div>
+        </div>
+        <div class="stack-actions">
+          <button id="builderProjectRefreshButton" class="ghost-button compact-button" type="button">Projekt neu laden</button>
+          <a class="ghost-button compact-button" data-nav-link="sheet" href="/charakterbogen">Zum Charakterbogen</a>
+        </div>
+      </section>
+
+      <section class="upload-panel">
+        <p class="eyebrow">Spieler</p>
+        <p class="upload-hint">Spieler bearbeiten ihren eigenen Bogen. Spielleiter koennen fuer jeden zugewiesenen Spieler bauen.</p>
+        <div id="builderRosterList" class="character-roster-list"></div>
+        <p id="builderRosterStatus" class="upload-hint">Spielerliste wird geladen...</p>
+      </section>
+
+      <section class="upload-panel">
+        <p class="eyebrow">Ablauf</p>
+        <div id="builderStepList" class="builder-step-list"></div>
+        <p id="builderStorageStatus" class="upload-hint">Autosave aktiv.</p>
+      </section>
+    </aside>
+
+    <section class="chat-panel character-sheet-panel">
+      <header class="chat-header">
+        <div>
+          <p class="eyebrow">Gefuehrter Aufbau</p>
+          <h2 id="builderHeadline">Neuen Charakter erstellen</h2>
+        </div>
+        <div id="builderSaveBadge" class="status-badge">Schritt 1 von 6</div>
+      </header>
+
+      <section class="chat-frame character-sheet-frame">
+        <div id="builderEmptyState" class="character-empty-state hidden">
+          <h3>Kein Spieler verfuegbar</h3>
+          <p>Weise zuerst einen Spieler dem aktiven Projekt zu, damit ein Builder-Bogen erzeugt werden kann.</p>
+        </div>
+
+        <div id="builderRoot" class="character-sheet-form">
+          <section class="character-sheet-hero builder-hero">
+            <div class="character-sheet-hero-copy">
+              <div class="character-sheet-header-line">
+                <span class="character-glow-dot" aria-hidden="true"></span>
+                <span class="file-meta">Gefuehrter Regelwerk-Flow</span>
+              </div>
+              <h3 id="builderHeroTitle">Noch kein Charakter gesetzt</h3>
+              <p id="builderHeroSubtitle">Der Builder fuehrt die Erschaffung in der Reihenfolge des Regelwerks: Identitaet, Volk, Attribute, Disziplinen, Ausruestung, Abschluss.</p>
+            </div>
+            <div id="builderHeroTags" class="character-pill-list"></div>
+          </section>
+
+          <div class="builder-progress-card">
+            <div class="builder-progress-header">
+              <strong id="builderProgressTitle">Schritt 1</strong>
+              <span id="builderProgressCounter" class="file-meta">1 / 6</span>
+            </div>
+            <div class="builder-progress-track" aria-hidden="true">
+              <div id="builderProgressFill" class="builder-progress-fill"></div>
+            </div>
+          </div>
+
+          <section class="character-card builder-step" data-step="0">
+            <div class="character-section-title">
+              <div>
+                <p class="eyebrow">Schritt 1</p>
+                <h3>Identitaet und Konzept</h3>
+              </div>
+            </div>
+            <div class="builder-step-copy">
+              <p>Lege fest, wer die Figur ist und warum sie in Nova Gaia relevant ist. Das Regelwerk gibt beim Hintergrund viel Freiheit, solange klar ist, welche Rolle die Figur im Spiel einnimmt.</p>
+            </div>
+            <div class="character-field-grid">
+              <label class="draw-control">
+                <span class="file-meta">Charaktername</span>
+                <input class="sidebar-input" data-path="identity.character_name" type="text" placeholder="z. B. Beate Baerenstark">
+              </label>
+              <label class="draw-control">
+                <span class="file-meta">Spieler</span>
+                <input id="builderPlayerName" class="sidebar-input" type="text" readonly>
+              </label>
+              <label class="draw-control">
+                <span class="file-meta">Konzept</span>
+                <input class="sidebar-input" data-path="identity.concept" type="text" placeholder="Jaegerin, Kundschafter, Psioniker, Gelehrte ...">
+              </label>
+              <label class="draw-control">
+                <span class="file-meta">Fraktion / Rolle</span>
+                <input class="sidebar-input" data-path="identity.faction" type="text" placeholder="Freisiedler, Vorhut, Archivbund ...">
+              </label>
+              <label class="draw-control">
+                <span class="file-meta">Herkunft</span>
+                <input class="sidebar-input" data-path="identity.origin" type="text" placeholder="Region, Siedlung, Auftrag, Herkunft ...">
+              </label>
+              <label class="draw-control">
+                <span class="file-meta">Motivation</span>
+                <input class="sidebar-input" data-path="identity.motivation" type="text" placeholder="Was treibt die Figur an?">
+              </label>
+              <label class="draw-control character-card-span-2">
+                <span class="file-meta">Hintergrund</span>
+                <textarea class="db-textarea character-textarea" data-path="identity.background" rows="5" placeholder="Kurzfassung des Hintergrunds, Ziele, Konflikte und offene Haken ..."></textarea>
+              </label>
+            </div>
+          </section>
+
+          <section class="character-card builder-step hidden" data-step="1">
+            <div class="character-section-title">
+              <div>
+                <p class="eyebrow">Schritt 2</p>
+                <h3>Volk waehlen</h3>
+              </div>
+            </div>
+            <div class="builder-step-copy">
+              <p>Das Volk legt keine Persoenlichkeit fest und bestimmt nicht die Disziplinen. Es liefert Lebensbonus, Resistenzen oder Schwaechen und passive Faehigkeiten.</p>
+            </div>
+            <input id="builderSelectedRaceInput" data-path="identity.volk" type="hidden">
+            <div id="builderRaceGrid" class="builder-race-grid"></div>
+            <div id="builderRaceInfoGrid" class="character-race-grid"></div>
+          </section>
+
+          <section class="character-card builder-step hidden" data-step="2">
+            <div class="character-section-title">
+              <div>
+                <p class="eyebrow">Schritt 3</p>
+                <h3>Attribute verteilen</h3>
+              </div>
+            </div>
+            <div class="builder-step-copy">
+              <p>Bei der Erschaffung auf Stufe 1 gilt die Verteilung 3 / 2 / 2 / 1 / 1. Das entspricht drei Attributen auf 2, zwei auf 1 und danach einer Erhoehung von 2 auf 3.</p>
+            </div>
+            <div class="builder-budget-grid">
+              <article class="character-sheet-summary-card">
+                <span class="file-meta">Soll-Verteilung</span>
+                <strong>3 / 2 / 2 / 1 / 1</strong>
+              </article>
+              <article class="character-sheet-summary-card">
+                <span class="file-meta">Aktuelle Werte</span>
+                <strong id="builderAttributePattern">0 / 0 / 0 / 0 / 0</strong>
+              </article>
+            </div>
+            <div id="builderAttributeGrid" class="character-score-grid"></div>
+          </section>
+
+          <section class="character-card builder-step hidden" data-step="3">
+            <div class="character-section-title">
+              <div>
+                <p class="eyebrow">Schritt 4</p>
+                <h3>Disziplinen waehlen</h3>
+              </div>
+            </div>
+            <div class="builder-step-copy">
+              <p>Zu Beginn verteilst du 10 Disziplinpunkte. Keine Disziplin darf ueber dem zugehoerigen Attribut liegen, und die maximale Startstufe ist 3.</p>
+            </div>
+            <div class="builder-budget-grid">
+              <article class="character-sheet-summary-card">
+                <span class="file-meta">Verfuegbare Punkte</span>
+                <strong id="builderDisciplineBudget">10</strong>
+              </article>
+              <article class="character-sheet-summary-card">
+                <span class="file-meta">Hinweis</span>
+                <strong>Max. Startstufe 3</strong>
+              </article>
+            </div>
+            <div id="builderDisciplineAttributeSummary" class="builder-attribute-summary-grid"></div>
+            <div class="builder-discipline-section">
+              <div class="character-section-title">
+                <div>
+                  <p class="eyebrow">Kampf</p>
+                  <h3>Kampfrelevante Disziplinen</h3>
+                </div>
+              </div>
+              <div id="builderCombatDisciplineGrid" class="character-discipline-grid"></div>
+            </div>
+            <div class="builder-discipline-section">
+              <div class="character-section-title">
+                <div>
+                  <p class="eyebrow">Allgemein</p>
+                  <h3>Wissen, Praxis und soziale Staerken</h3>
+                </div>
+              </div>
+              <div id="builderGeneralDisciplineGrid" class="character-discipline-grid character-discipline-grid-compact"></div>
+            </div>
+          </section>
+
+          <section class="character-card builder-step hidden" data-step="4">
+            <div class="character-section-title">
+              <div>
+                <p class="eyebrow">Schritt 5</p>
+                <h3>Kampfwerte und Ausruestung</h3>
+              </div>
+            </div>
+              <div class="builder-step-copy">
+                <p>Zu Beginn liegen alle Komplexitaeten auf 1. Level startet normalerweise auf 1. Max-Lebenspunkte werden automatisch aus Koerper und Lebensbonus berechnet. Aktuelle Lebenspunkte und Ruestung bleiben manuell.</p>
+              </div>
+              <div id="builderCombatValuesGrid" class="character-field-grid">
+                <label class="draw-control">
+                  <span class="file-meta">Level</span>
+                  <input class="sidebar-input character-number" data-path="identity.level" type="number" min="1" max="20" step="1" placeholder="1">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Lebenspunkte max</span>
+                  <input class="sidebar-input character-number character-derived-input" data-path="combat.hp_max" type="number" min="0" max="999" step="1" placeholder="0" readonly>
+                  <span id="builderHpFormula" class="character-auto-value-note">Automatisch aus Koerper und Lebensbonus.</span>
+                </label>
+              <label class="draw-control">
+                <span class="file-meta">Lebenspunkte aktuell</span>
+                <input class="sidebar-input character-number" data-path="combat.hp_current" type="number" min="0" max="999" step="1" placeholder="0">
+              </label>
+              <label class="draw-control">
+                <span class="file-meta">Ruestung</span>
+                <input class="sidebar-input character-number" data-path="combat.armor_value" type="number" min="0" max="20" step="1" placeholder="0">
+              </label>
+            </div>
+            <div id="builderComplexityGrid" class="character-complexity-grid"></div>
+            <div class="character-field-grid">
+              <label class="draw-control">
+                <span class="file-meta">Waffenart</span>
+                <select id="builderWeaponTypeSelect" class="sidebar-input" data-path="equipment.weapon_type"></select>
+              </label>
+              <label class="draw-control">
+                <span class="file-meta">Waffenname</span>
+                <input class="sidebar-input" data-path="equipment.weapon_name" type="text" placeholder="z. B. Schwert, Speer, Pistole">
+              </label>
+              <label class="draw-control">
+                <span class="file-meta">Waffenbonus</span>
+                <input class="sidebar-input character-number" data-path="equipment.weapon_bonus" type="number" min="0" max="20" step="1" placeholder="0">
+              </label>
+              <label class="draw-control">
+                <span class="file-meta">Offhand</span>
+                <select id="builderOffhandTypeSelect" class="sidebar-input" data-path="equipment.offhand_type"></select>
+              </label>
+              <label class="draw-control">
+                <span class="file-meta">Fokusart</span>
+                <select id="builderFocusTypeSelect" class="sidebar-input" data-path="equipment.focus_type"></select>
+              </label>
+              <label class="draw-control">
+                <span class="file-meta">Ruestungsart</span>
+                <input class="sidebar-input" data-path="equipment.armor_name" type="text" placeholder="z. B. Leder, Schuppe, Runenmantel">
+              </label>
+              <label class="draw-control">
+                <span class="file-meta">Werkzeuge</span>
+                <input class="sidebar-input" data-path="equipment.tools" type="text" placeholder="Medikit, Kletterzeug, Runenwerkzeug ...">
+              </label>
+              <label class="draw-control">
+                <span class="file-meta">Reiseausruestung</span>
+                <input class="sidebar-input" data-path="equipment.travel_gear" type="text" placeholder="Proviant, Seil, Lager, Schutz ...">
+              </label>
+              <label class="draw-control character-card-span-2">
+                <span class="file-meta">Ausrustungsnotizen</span>
+                <textarea class="db-textarea character-textarea" data-path="equipment.notes" rows="4" placeholder="Narrative Beschreibung, Fokusdetails, Sondergegenstaende ..."></textarea>
+              </label>
+            </div>
+          </section>
+
+          <section class="character-card builder-step hidden" data-step="5">
+            <div class="character-section-title">
+              <div>
+                <p class="eyebrow">Schritt 6</p>
+                <h3>Abschluss und Uebernahme</h3>
+              </div>
+            </div>
+            <div class="builder-step-copy">
+              <p>Hier siehst du den Charakter noch einmal als Erschaffungszusammenfassung. Wenn die Regelpruefung rechts gruene Punkte zeigt, ist der Bogen bereit fuer die Detailpflege im normalen Charakterbogen.</p>
+            </div>
+            <div id="builderReviewGrid" class="builder-review-grid"></div>
+            <div class="character-field-grid">
+              <label class="draw-control">
+                <span class="file-meta">Faehigkeiten / Besonderheiten</span>
+                <textarea class="db-textarea character-textarea" data-path="notes.abilities" rows="4" placeholder="Besondere Talente, passive Wirkungen, Storynotizen ..."></textarea>
+              </label>
+              <label class="draw-control">
+                <span class="file-meta">Verbindungen</span>
+                <textarea class="db-textarea character-textarea" data-path="notes.connections" rows="4" placeholder="Kontakte, Rivalen, Verpflichtungen, Gruppenbezug ..."></textarea>
+              </label>
+              <label class="draw-control character-card-span-2">
+                <span class="file-meta">Freie Notizen</span>
+                <textarea class="db-textarea character-textarea character-notes" data-path="notes.freeform" rows="6" placeholder="Offene Fragen, Startausstattung, Plot-Hooks ..."></textarea>
+              </label>
+            </div>
+          </section>
+
+          <div class="builder-navigation">
+            <button id="builderBackButton" class="ghost-button compact-button" type="button">Zurueck</button>
+            <div class="builder-navigation-actions">
+              <button id="builderResetButton" class="ghost-button compact-button" type="button">Builder leeren</button>
+              <button id="builderNextButton" class="upload-button" type="button">Weiter</button>
+            </div>
+          </div>
+          <p id="builderStepValidationMessage" class="upload-hint builder-step-validation-message"></p>
+        </div>
+      </section>
+    </section>
+
+    <aside class="sidebar sidebar-right">
+      <section class="upload-panel">
+        <p class="eyebrow">Live-Status</p>
+        <div class="character-sheet-summary">
+          <article class="character-sheet-summary-card">
+            <span class="file-meta">Projekt</span>
+            <strong id="builderSummaryProject">-</strong>
+          </article>
+          <article class="character-sheet-summary-card">
+            <span class="file-meta">Spieler</span>
+            <strong id="builderSummaryPlayer">-</strong>
+          </article>
+          <article class="character-sheet-summary-card">
+            <span class="file-meta">Volk</span>
+            <strong id="builderSummaryRace">-</strong>
+          </article>
+          <article class="character-sheet-summary-card">
+            <span class="file-meta">Disziplinpunkte</span>
+            <strong id="builderSummaryDisciplines">0 / 10</strong>
+          </article>
+          <article class="character-sheet-summary-card">
+            <span class="file-meta">Attributmuster</span>
+            <strong id="builderSummaryAttributes">0 / 0 / 0 / 0 / 0</strong>
+          </article>
+          <article class="character-sheet-summary-card">
+            <span class="file-meta">Status</span>
+            <strong id="builderValidationStatus">Pruefung offen</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="upload-panel">
+        <p class="eyebrow">Schritt-Erklaerung</p>
+        <div id="builderStepNotes" class="character-guidance-list"></div>
+      </section>
+
+      <section class="upload-panel">
+        <p class="eyebrow">Regelpruefung</p>
+        <div id="builderValidationList" class="character-guidance-list"></div>
+      </section>
+
+      <section class="upload-panel">
+        <p class="eyebrow">Kampfreferenz</p>
+        <div id="builderAttackReferenceGrid" class="character-attack-grid"></div>
+      </section>
+    </aside>
+  </main>
+
+  <script src="/static/auth-ui.js?v=10" defer></script>
+  <script src="/static/charakter-builder.js?v=1" defer></script>
+</body>
+</html>

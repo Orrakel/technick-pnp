@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eldran Charakterbogen</title>
+  <link rel="stylesheet" href="/static/style.css?v=19">
+</head>
+<body>
+  <main class="app-shell">
+    <aside class="sidebar">
+      <details class="burger-menu">
+        <summary class="burger-button" aria-label="Menue oeffnen"><span class="burger-icon" aria-hidden="true"></span></summary>
+        <div class="burger-menu-panel">
+          <nav class="top-nav burger-nav">
+            <a class="nav-link" data-surface-link="map" href="/karte">Karte</a>
+            <a class="nav-link" data-gm-only data-surface-link="battlemap" href="/battlemap">Battlemap</a>
+            <a class="nav-link active" data-nav-link="sheet" href="/charakterbogen">Charakterbogen</a>
+            <a class="nav-link" data-nav-link="builder" href="/charakter-builder">Builder</a>
+            <a class="nav-link" href="/wiki">Wiki</a>
+            <a class="nav-link hidden" data-admin-only href="/db">Datenbank</a>
+          </nav>
+          <div class="auth-strip burger-auth">
+            <span data-current-user class="file-meta"></span>
+            <button data-logout-button class="ghost-button compact-button" type="button">Logout</button>
+          </div>
+        </div>
+      </details>
+
+      <div class="brand character-brand">
+        <span id="sheetRulesetKicker" class="brand-kicker">Nova Gaia</span>
+        <h1>Charakterbogen</h1>
+        <p id="sheetRulesetIntro">Ein projektgebundener Bogen nach dem Regelwerk: genau ein Charakter pro Spieler und Projekt.</p>
+      </div>
+
+      <section class="upload-panel">
+        <p class="eyebrow">Projekt</p>
+        <div class="character-project-card">
+          <div class="file-meta">Aktives Projekt</div>
+          <div id="sheetProjectName" class="character-project-name">Wird geladen...</div>
+          <div id="sheetProjectMeta" class="upload-hint">Charakterboegen werden serverseitig pro Projekt gespeichert.</div>
+        </div>
+        <div class="stack-actions">
+          <button id="sheetProjectRefreshButton" class="ghost-button compact-button" type="button">Projekt neu laden</button>
+        </div>
+      </section>
+
+      <section class="upload-panel">
+        <p class="eyebrow">Spieler</p>
+        <p class="upload-hint">Spieler sehen nur ihren eigenen Bogen. Spielleiter sehen alle zugewiesenen Boegen des Projekts.</p>
+        <div id="sheetRosterList" class="character-roster-list"></div>
+        <p id="sheetRosterStatus" class="upload-hint">Spielerliste wird geladen...</p>
+      </section>
+
+      <section class="upload-panel">
+        <p class="eyebrow">Daten</p>
+        <div id="novaGaiaDataActions" class="stack-actions">
+          <a class="upload-button" data-nav-link="builder" href="/charakter-builder">Neuen Charakter erstellen</a>
+          <a class="ghost-button compact-button" data-nav-link="builder" href="/charakter-builder">Builder oeffnen</a>
+          <button id="sheetExportButton" class="ghost-button compact-button" type="button">JSON exportieren</button>
+          <label for="sheetImportInput" class="upload-button">JSON importieren</label>
+          <input id="sheetImportInput" type="file" accept="application/json" hidden>
+          <button id="sheetResetButton" class="ghost-button compact-button" type="button">Bogen leeren</button>
+        </div>
+        <div id="dndPdfActions" class="stack-actions hidden">
+          <label for="dndPdfInput" class="upload-button">Charaktersheet-PDF einlesen</label>
+          <input id="dndPdfInput" type="file" accept="application/pdf,.pdf" hidden>
+          <a id="dndPdfOpenLink" class="ghost-button compact-button hidden" href="#" target="_blank" rel="noopener">PDF in neuem Tab oeffnen</a>
+          <button id="dndPdfDeleteButton" class="ghost-button compact-button hidden" type="button">PDF loeschen</button>
+        </div>
+        <p id="sheetStorageStatus" class="upload-hint">Autosave aktiv.</p>
+      </section>
+    </aside>
+
+    <section class="chat-panel character-sheet-panel">
+      <header class="chat-header">
+        <div>
+          <p class="eyebrow">Regelwerkbogen</p>
+          <h2 id="sheetHeadline">Charakterbogen</h2>
+        </div>
+        <div id="sheetSaveBadge" class="status-badge">Nicht geladen</div>
+      </header>
+
+      <section class="chat-frame character-sheet-frame">
+        <div id="sheetEmptyState" class="character-empty-state hidden">
+          <h3>Kein Charakterbogen verfuegbar</h3>
+          <p>Weise dem Projekt zuerst einen Spieler zu oder waehle einen vorhandenen Eintrag aus der Liste.</p>
+          <div class="character-empty-actions">
+            <a class="upload-button" data-nav-link="builder" href="/charakter-builder">Neuen Charakter erstellen</a>
+          </div>
+        </div>
+
+        <form id="characterSheetForm" class="character-sheet-form" autocomplete="off">
+          <section class="character-sheet-hero">
+            <div class="character-sheet-hero-copy">
+              <div class="character-sheet-header-line">
+                <span class="character-glow-dot" aria-hidden="true"></span>
+                <span class="file-meta">Ein Bogen pro Spieler und Projekt</span>
+              </div>
+              <h3 id="sheetHeroTitle">Noch kein Charakter gesetzt</h3>
+              <p id="sheetHeroSubtitle">Waehle Volk, Attribute, Disziplinen und Ausruestung passend zum Regelwerk von Nova Gaia.</p>
+            </div>
+            <div id="sheetHeroTags" class="character-pill-list"></div>
+          </section>
+
+          <div class="character-grid">
+            <section class="character-card character-card-span-2">
+              <div class="character-section-title">
+                <div>
+                  <p class="eyebrow">Identitaet</p>
+                  <h3>Grunddaten des Charakters</h3>
+                </div>
+              </div>
+              <div class="character-field-grid">
+                <label class="draw-control">
+                  <span class="file-meta">Charaktername</span>
+                  <input class="sidebar-input" data-path="identity.character_name" type="text" placeholder="z. B. Beate Baerenstark">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Spieler</span>
+                  <input id="sheetPlayerName" class="sidebar-input" type="text" value="" readonly>
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Volk</span>
+                  <select id="sheetVolkSelect" class="sidebar-input" data-path="identity.volk"></select>
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Level</span>
+                  <input class="sidebar-input character-number" data-path="identity.level" type="number" min="1" max="20" step="1" placeholder="1">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Konzept</span>
+                  <input class="sidebar-input" data-path="identity.concept" type="text" placeholder="z. B. Jaegerin, Taktiker, Psioniker">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Fraktion / Rolle</span>
+                  <input class="sidebar-input" data-path="identity.faction" type="text" placeholder="Freisiedler, Archivbund, Vorhut ...">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Herkunft</span>
+                  <input class="sidebar-input" data-path="identity.origin" type="text" placeholder="Heimat, Gebiet, Auftraggeber ...">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Motivation</span>
+                  <input class="sidebar-input" data-path="identity.motivation" type="text" placeholder="Warum geht die Figur Risiken ein?">
+                </label>
+                <label class="draw-control character-card-span-2">
+                  <span class="file-meta">Hintergrund</span>
+                  <textarea class="db-textarea character-textarea" data-path="identity.background" rows="4" placeholder="Kurzer Hintergrund, aktuelle Ziele, offene Konflikte ..."></textarea>
+                </label>
+              </div>
+            </section>
+
+            <section class="character-card">
+              <div class="character-section-title">
+                <div>
+                  <p class="eyebrow">Volk</p>
+                  <h3>Abgeleitete Volkswerte</h3>
+                </div>
+              </div>
+              <div id="sheetRaceInfoGrid" class="character-race-grid"></div>
+            </section>
+
+            <section class="character-card">
+              <div class="character-section-title">
+                <div>
+                  <p class="eyebrow">Zustand</p>
+                  <h3>Kampfbereite Werte</h3>
+                </div>
+              </div>
+              <div class="character-stat-grid">
+                <label class="draw-control">
+                  <span class="file-meta">Lebenspunkte aktuell</span>
+                  <input class="sidebar-input character-number" data-path="combat.hp_current" type="number" min="0" max="999" step="1" placeholder="0">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Lebenspunkte max</span>
+                  <input class="sidebar-input character-number character-derived-input" data-path="combat.hp_max" type="number" min="0" max="999" step="1" placeholder="0" readonly>
+                  <span id="sheetHpFormula" class="character-auto-value-note">Automatisch aus Koerper und Lebensbonus.</span>
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Ruestung</span>
+                  <input class="sidebar-input character-number" data-path="combat.armor_value" type="number" min="0" max="20" step="1" placeholder="0">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Initiative-Bonus</span>
+                  <input class="sidebar-input character-number" data-path="combat.initiative_bonus" type="number" min="-10" max="10" step="1" placeholder="0">
+                </label>
+                <label class="draw-control character-card-span-2">
+                  <span class="file-meta">Zustandsnotizen</span>
+                  <textarea class="db-textarea character-textarea" data-path="combat.status_notes" rows="3" placeholder="Verletzungen, Effekte, Shields, Belastungen ..."></textarea>
+                </label>
+              </div>
+            </section>
+
+            <section class="character-card character-card-span-2">
+              <div class="character-section-title">
+                <div>
+                  <p class="eyebrow">Attribute</p>
+                  <h3>Die fuenf Grundwerte</h3>
+                </div>
+                <span class="file-meta">Stufen 0 bis 5</span>
+              </div>
+              <div id="attributeGrid" class="character-score-grid"></div>
+            </section>
+
+            <section class="character-card character-card-span-2">
+              <div class="character-section-title">
+                <div>
+                  <p class="eyebrow">Kampfrelevante Disziplinen</p>
+                  <h3>Direkte Kampf- und Aetherdisziplinen</h3>
+                </div>
+                <span class="file-meta">Disziplin <= zugehoeriges Attribut</span>
+              </div>
+              <div id="combatDisciplineGrid" class="character-discipline-grid"></div>
+            </section>
+
+            <section class="character-card character-card-span-2">
+              <div class="character-section-title">
+                <div>
+                  <p class="eyebrow">Allgemeine Disziplinen</p>
+                  <h3>Wissen, Ueberleben, Soziales und Praxis</h3>
+                </div>
+                <span class="file-meta">Im Spiel sind alternative Attribute moeglich</span>
+              </div>
+              <div id="generalDisciplineGrid" class="character-discipline-grid character-discipline-grid-compact"></div>
+            </section>
+
+            <section class="character-card">
+              <div class="character-section-title">
+                <div>
+                  <p class="eyebrow">Komplexitaet</p>
+                  <h3>Kontrolle ueber Disziplinen</h3>
+                </div>
+              </div>
+              <div id="complexityGrid" class="character-complexity-grid"></div>
+            </section>
+
+            <section class="character-card">
+              <div class="character-section-title">
+                <div>
+                  <p class="eyebrow">Ausruestung</p>
+                  <h3>Waffen, Offhand und Fokus</h3>
+                </div>
+              </div>
+              <div class="character-field-grid">
+                <label class="draw-control">
+                  <span class="file-meta">Waffenart</span>
+                  <select id="sheetWeaponTypeSelect" class="sidebar-input" data-path="equipment.weapon_type"></select>
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Waffenname</span>
+                  <input class="sidebar-input" data-path="equipment.weapon_name" type="text" placeholder="z. B. Schwert, Speer, Pistole">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Waffenbonus</span>
+                  <input class="sidebar-input character-number" data-path="equipment.weapon_bonus" type="number" min="0" max="20" step="1" placeholder="0">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Offhand</span>
+                  <select id="sheetOffhandTypeSelect" class="sidebar-input" data-path="equipment.offhand_type"></select>
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Fokusart</span>
+                  <select id="sheetFocusTypeSelect" class="sidebar-input" data-path="equipment.focus_type"></select>
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Ruestungsart</span>
+                  <input class="sidebar-input" data-path="equipment.armor_name" type="text" placeholder="z. B. Leder, Schuppe, Runenmantel">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Werkzeuge</span>
+                  <input class="sidebar-input" data-path="equipment.tools" type="text" placeholder="Medikit, Kletterzeug, Runenwerkzeug ...">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Reiseausruestung</span>
+                  <input class="sidebar-input" data-path="equipment.travel_gear" type="text" placeholder="Proviant, Seil, Lager, Schutz ...">
+                </label>
+                <label class="draw-control character-card-span-2">
+                  <span class="file-meta">Ausrustungsnotizen</span>
+                  <textarea class="db-textarea character-textarea" data-path="equipment.notes" rows="3" placeholder="Freie Notizen zu Waffenkombinationen, Sonderregeln, Munition ..."></textarea>
+                </label>
+              </div>
+            </section>
+
+            <section class="character-card character-card-span-2">
+              <div class="character-section-title">
+                <div>
+                  <p class="eyebrow">Notizen</p>
+                  <h3>Talente, Szenenanker und offene Punkte</h3>
+                </div>
+              </div>
+              <div class="character-field-grid">
+                <label class="draw-control">
+                  <span class="file-meta">Faehigkeiten / Besonderheiten</span>
+                  <textarea class="db-textarea character-textarea" data-path="notes.abilities" rows="4" placeholder="Ergaenzende Talente, Training, Vorteile, Storyregeln ..."></textarea>
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Verbindungen</span>
+                  <textarea class="db-textarea character-textarea" data-path="notes.connections" rows="4" placeholder="Kontakte, Rivalen, Verpflichtungen, Gruppenbezug ..."></textarea>
+                </label>
+                <label class="draw-control character-card-span-2">
+                  <span class="file-meta">Freie Notizen</span>
+                  <textarea class="db-textarea character-textarea character-notes" data-path="notes.freeform" rows="7" placeholder="Alles, was im Spiel schnell verfuegbar sein soll ..."></textarea>
+                </label>
+              </div>
+            </section>
+          </div>
+        </form>
+
+        <section id="dndPdfPanel" class="dnd-pdf-panel hidden">
+          <div id="dndPdfInfoBlock" class="character-sheet-hero">
+            <div class="character-sheet-hero-copy">
+              <div class="character-sheet-header-line">
+                <span class="character-glow-dot" aria-hidden="true"></span>
+                <span class="file-meta">DnD PDF-Charakterbogen</span>
+              </div>
+              <h3 id="dndPdfTitle">Noch kein PDF geladen</h3>
+              <p id="dndPdfSubtitle">Lade ein Charaktersheet-PDF hoch, um es projektgebunden zu speichern und hier anzusehen.</p>
+            </div>
+            <div id="dndPdfTags" class="character-pill-list"></div>
+          </div>
+          <div id="dndPdfEmptyState" class="character-empty-state">
+            <h3>Kein PDF vorhanden</h3>
+            <p>Spieler koennen ihren eigenen DnD-Charakterbogen als PDF einlesen. Spielleiter sehen danach alle PDFs der zugewiesenen Spieler.</p>
+          </div>
+          <div id="dndParsedDataView" class="dnd-parsed-data hidden"></div>
+        </section>
+      </section>
+    </section>
+
+    <aside id="characterSheetRightSidebar" class="sidebar sidebar-right">
+      <section class="upload-panel">
+        <p class="eyebrow">Schnellblick</p>
+        <div class="character-sheet-summary">
+          <article class="character-sheet-summary-card">
+            <span class="file-meta">Projekt</span>
+            <strong id="summaryProject">-</strong>
+          </article>
+          <article class="character-sheet-summary-card">
+            <span class="file-meta">Spieler</span>
+            <strong id="summarySelectedPlayer">-</strong>
+          </article>
+          <article class="character-sheet-summary-card">
+            <span class="file-meta">Volk</span>
+            <strong id="summaryVolk">-</strong>
+          </article>
+          <article class="character-sheet-summary-card">
+            <span class="file-meta">Initiative</span>
+            <strong id="summaryInitiative">Instinkt + Wahrnehmung</strong>
+          </article>
+          <article class="character-sheet-summary-card">
+            <span class="file-meta">Disziplinpunkte</span>
+            <strong id="summaryDisciplines">0</strong>
+          </article>
+          <article class="character-sheet-summary-card">
+            <span class="file-meta">Status</span>
+            <strong id="validationStatus">Pruefung offen</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="upload-panel">
+        <p class="eyebrow">Regelpruefung</p>
+        <div id="validationList" class="character-guidance-list"></div>
+      </section>
+
+      <section class="upload-panel">
+        <p class="eyebrow">Angriffsreferenz</p>
+        <div id="attackReferenceGrid" class="character-attack-grid"></div>
+      </section>
+
+      <section class="upload-panel">
+        <p class="eyebrow">Disziplin-Hinweise</p>
+        <div id="disciplineReferenceList" class="character-guidance-list"></div>
+      </section>
+    </aside>
+  </main>
+
+  <script src="/static/auth-ui.js?v=10" defer></script>
+  <script src="/static/charakterbogen.js?v=10" defer></script>
+</body>
+</html>

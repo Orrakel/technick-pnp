@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eldran Datenbank</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <aside class="sidebar">
+      <details class="burger-menu">
+        <summary class="burger-button" aria-label="Menue oeffnen"><span class="burger-icon" aria-hidden="true"></span></summary>
+        <div class="burger-menu-panel">
+          <nav class="top-nav burger-nav">
+            <a class="nav-link" data-surface-link="map" href="/karte">Karte</a>
+            <a class="nav-link" data-surface-link="battlemap" href="/battlemap">Battlemap</a>
+            <a class="nav-link" data-nav-link="sheet" href="/charakterbogen">Charakterbogen</a>
+            <a class="nav-link" href="/wiki">Wiki</a>
+          </nav>
+          <div class="auth-strip burger-auth">
+            <span data-current-user class="file-meta"></span>
+            <button data-logout-button class="ghost-button compact-button" type="button">Logout</button>
+          </div>
+        </div>
+      </details>
+      <div class="brand">
+        <span class="brand-kicker">Eldran</span>
+        <h1>Datenbank-Konsole</h1>
+        <p>Tabellen ansehen, SQL ausfuehren und gespeicherte Dokumentdaten direkt pruefen.</p>
+      </div>
+      <section class="upload-panel">
+        <p class="eyebrow">Tabellen</p>
+        <div id="tableList" class="table-list"></div>
+      </section>
+      <section class="upload-panel">
+        <p class="eyebrow">Benutzer</p>
+        <form id="userCreateForm" class="auth-form hidden">
+          <input id="userCreateUsername" class="sidebar-input" type="text" placeholder="Login-Name" required>
+          <input id="userCreatePassword" class="sidebar-input" type="password" placeholder="Passwort" required>
+          <input id="userCreatePasswordConfirm" class="sidebar-input" type="password" placeholder="Passwort bestaetigen" required>
+          <select id="userCreateRole" class="sidebar-input">
+            <option value="spieler">spieler</option>
+            <option value="spielleiter">spielleiter</option>
+            <option value="admin">admin</option>
+          </select>
+          <button class="ghost-button compact-button" type="submit">Account anlegen</button>
+        </form>
+        <div id="userAdminList" class="user-admin-list"></div>
+      </section>
+    </aside>
+
+    <section class="chat-panel db-panel">
+      <header class="chat-header">
+        <div>
+          <p class="eyebrow">SQL</p>
+          <h2>Datenbank durchsuchen</h2>
+        </div>
+        <div id="dbStatusBadge" class="status-badge">Bereit</div>
+      </header>
+
+      <section class="db-query-panel">
+        <label class="sr-only" for="sqlInput">SQL</label>
+        <textarea id="sqlInput" class="db-textarea" rows="6" spellcheck="false">SELECT * FROM document_overview</textarea>
+        <div class="stack-actions horizontal-actions">
+          <button id="runQueryButton" class="ghost-button compact-button" type="button">Abfrage ausfuehren</button>
+          <button id="refreshTablesButton" class="ghost-button compact-button" type="button">Tabellen neu laden</button>
+        </div>
+      </section>
+
+      <section class="chat-frame db-results-frame">
+        <div id="dbResults" class="db-results"></div>
+      </section>
+    </section>
+  </main>
+
+  <script src="/static/auth-ui.js?v=10" defer></script>
+  <script src="/static/db.js?v=2" defer></script>
+</body>
+</html>

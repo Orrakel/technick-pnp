@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eldran Karte</title>
+  <link rel="stylesheet" href="/static/style.css?v=15">
+</head>
+<body>
+  <main id="mapPanelBoard" class="app-shell">
+    <aside class="sidebar" data-panel-sidebar="left">
+      <details class="burger-menu">
+        <summary class="burger-button" aria-label="Menue oeffnen"><span class="burger-icon" aria-hidden="true"></span></summary>
+        <div class="burger-menu-panel">
+          <nav class="top-nav burger-nav">
+            <a class="nav-link active" data-surface-link="map" href="/karte">Karte</a>
+            <a class="nav-link" data-gm-only data-surface-link="battlemap" href="/battlemap">Battlemap</a>
+            <a class="nav-link" data-nav-link="sheet" href="/charakterbogen">Charakterbogen</a>
+            <a class="nav-link" href="/wiki">Wiki</a>
+            <a class="nav-link hidden" data-admin-only href="/db">Datenbank</a>
+          </nav>
+          <div class="auth-strip burger-auth">
+            <span data-current-user class="file-meta"></span>
+            <button data-logout-button class="ghost-button compact-button" type="button">Logout</button>
+          </div>
+        </div>
+      </details>
+      <div class="panel-column" data-panel-column="left">
+        <section class="upload-panel workspace-panel" data-panel-id="project">
+          <div class="panel-header" data-panel-drag>
+            <p class="eyebrow">Projekt</p>
+            <button class="ghost-button compact-button panel-toggle" data-panel-toggle type="button" aria-expanded="true">-</button>
+          </div>
+          <div data-panel-content>
+            <label class="draw-control">
+              <span class="file-meta">Aktives Projekt</span>
+              <select id="projectSelect" class="sidebar-input"></select>
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Neues Projekt</span>
+              <input id="projectNameInput" class="sidebar-input" type="text" placeholder="Projektname">
+            </label>
+            <button id="projectCreateButton" class="ghost-button compact-button" type="button">Projekt-Wizard oeffnen</button>
+            <div id="projectPlayerList" class="stack-actions"></div>
+            <p id="projectStatus" class="upload-hint">Projekt wird geladen...</p>
+          </div>
+        </section>
+        <section class="upload-panel workspace-panel" data-panel-id="maps">
+          <div class="panel-header" data-panel-drag>
+            <p class="eyebrow">Karten</p>
+            <button class="ghost-button compact-button panel-toggle" data-panel-toggle type="button" aria-expanded="true">-</button>
+          </div>
+          <div data-panel-content>
+            <label class="draw-control">
+              <span class="file-meta">Neue Karte</span>
+              <input id="mapNameInput" class="sidebar-input" type="text" placeholder="Kartenname">
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Bild</span>
+              <input id="mapCreateImageInput" class="sidebar-input" type="file" accept="image/*">
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Hintergrundfarbe</span>
+              <input id="mapCreateBackgroundColorInput" class="color-input" type="color" value="#223044">
+            </label>
+            <button id="mapCreateButton" class="ghost-button compact-button" type="button">Karte anlegen</button>
+            <label class="draw-control">
+              <span class="file-meta">Ausgewaehlte Karte umbenennen</span>
+              <input id="mapRenameInput" class="sidebar-input" type="text" placeholder="Neuer Kartenname">
+            </label>
+            <button id="mapRenameButton" class="ghost-button compact-button" type="button">Umbenennen</button>
+            <button id="mapActivateButton" class="ghost-button compact-button" type="button">Fuer Spieler anzeigen</button>
+            <button id="mapDeleteButton" class="ghost-button compact-button" type="button">Karte loeschen</button>
+            <p id="mapListStatus" class="upload-hint">Aktive Karte wird fuer alle Spieler angezeigt.</p>
+            <div id="mapList" class="chat-list"></div>
+          </div>
+        </section>
+
+        <section class="upload-panel workspace-panel" data-panel-id="image">
+          <div class="panel-header" data-panel-drag>
+            <p class="eyebrow">Bild</p>
+            <button class="ghost-button compact-button panel-toggle" data-panel-toggle type="button" aria-expanded="true">-</button>
+          </div>
+          <div data-panel-content>
+            <label class="upload-button" for="mapImageInput">Aktive Ebene aktualisieren</label>
+            <input id="mapImageInput" type="file" accept="image/*" hidden>
+            <p id="mapUploadStatus" class="upload-hint">PNG, JPG, WEBP oder GIF funktionieren direkt.</p>
+            <div class="draw-controls">
+              <label class="draw-control">
+                <span class="file-meta">Farbe</span>
+                <input id="mapDrawColorInput" class="color-input" type="color" value="#ff6b6b">
+              </label>
+              <label class="draw-control">
+                <span class="file-meta">Dicke</span>
+                <input id="mapDrawWidthInput" class="range-input" type="range" min="1" max="24" step="1" value="3">
+                <span id="mapDrawWidthValue" class="file-meta">3 px</span>
+              </label>
+            </div>
+            <button id="mapDrawingsClearButton" class="ghost-button compact-button" type="button">Alles Gezeichnete loeschen</button>
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <section class="chat-panel map-panel">
+      <div class="map-sidebar-toggles">
+        <button class="ghost-button compact-button map-sidebar-toggle" data-sidebar-toggle="left" type="button" aria-label="Linke Seitenleiste ein- oder ausklappen"><<</button>
+        <button class="ghost-button compact-button map-sidebar-toggle" data-sidebar-toggle="right" type="button" aria-label="Rechte Seitenleiste ein- oder ausklappen">>></button>
+      </div>
+      <header class="chat-header">
+        <div>
+          <p class="eyebrow">Live-Bild</p>
+          <h2 id="mapTitle">Aktuelle Karte</h2>
+        </div>
+        <div id="mapStatusBadge" class="status-badge">Bereit</div>
+      </header>
+
+      <div class="map-zoom-panel">
+        <label class="draw-control">
+          <span class="file-meta">Zoom</span>
+          <input id="mapZoomInput" class="range-input" type="range" min="50" max="300" step="10" value="100">
+          <span id="mapZoomValue" class="file-meta">100 %</span>
+        </label>
+      </div>
+      <div class="map-layer-panel">
+        <div class="map-layer-panel-header">
+          <span class="file-meta">Ebenen</span>
+        </div>
+        <div id="mapLayerNavigatorWrap" class="map-layer-navigator hidden">
+          <button id="mapLayerNavigatorToggle" class="map-layer-navigator-toggle" type="button" aria-expanded="true">
+            <span class="file-meta">Ebenenregler</span>
+          </button>
+          <div id="mapLayerNavigatorBody" class="map-layer-navigator-body">
+            <div id="mapLayerStack" class="map-layer-stack" aria-label="Ebenen"></div>
+            <div class="map-layer-nav-actions">
+              <button id="mapLayerUpButton" class="ghost-button compact-button" type="button">Ebene hoch</button>
+              <button id="mapLayerDownButton" class="ghost-button compact-button" type="button">Ebene runter</button>
+            </div>
+          </div>
+        </div>
+        <label id="mapLayerSelectWrap" class="draw-control map-layer-inline-control">
+          <span class="file-meta">Aktive Ebene</span>
+          <select id="mapLayerSelect" class="sidebar-input"></select>
+        </label>
+        <label id="mapLayerRenameWrap" class="draw-control map-layer-inline-control">
+          <span class="file-meta">Ebenenname</span>
+          <input id="mapLayerNameInput" class="sidebar-input" type="text" placeholder="Ebene 1">
+        </label>
+        <div id="mapLayerManagerWrap" class="stack-actions horizontal-actions">
+          <button id="mapLayerRenameButton" class="ghost-button compact-button" type="button">Namen speichern</button>
+          <button id="mapLayerCreateButton" class="ghost-button compact-button" type="button">Ebene hinzufuegen</button>
+        </div>
+        <label id="mapLayerImageWrap" class="draw-control map-layer-inline-control">
+          <span class="file-meta">Bild fuer neue Ebene</span>
+          <input id="mapLayerImageInput" class="sidebar-input" type="file" accept="image/*">
+        </label>
+        <label id="mapLayerBackgroundWrap" class="draw-control map-layer-inline-control">
+          <span class="file-meta">Farbebene</span>
+          <input id="mapLayerBackgroundColorInput" class="color-input" type="color" value="#223044">
+        </label>
+        <label id="mapLayerGmWrap" class="draw-control map-layer-inline-toggle hidden">
+          <span class="file-meta">GM-Ebene einblenden</span>
+          <input id="mapShowGmLayerInput" type="checkbox" checked>
+        </label>
+        <label id="mapCreateOnGmWrap" class="draw-control map-layer-inline-toggle hidden">
+          <span class="file-meta">GM-Ebene aktiv</span>
+          <input id="mapCreateOnGmInput" type="checkbox">
+        </label>
+        <label id="mapFogEnabledWrap" class="draw-control map-layer-inline-toggle hidden">
+          <span class="file-meta">Nebel aktiv</span>
+          <input id="mapFogEnabledInput" type="checkbox">
+        </label>
+        <div id="mapFogManagerWrap" class="stack-actions horizontal-actions hidden">
+          <button id="mapFogWallModeButton" class="ghost-button compact-button" type="button">Wandmodus</button>
+          <button id="mapFogDoorModeButton" class="ghost-button compact-button" type="button">Tuermodus</button>
+          <button id="mapFogDeleteWallButton" class="ghost-button compact-button" type="button">Auswahl loeschen</button>
+          <button id="mapFogClearExploredButton" class="ghost-button compact-button" type="button">Vision zuruecksetzen</button>
+        </div>
+        <p id="mapLayerStatus" class="upload-hint">Die Ebenenauswahl gilt nur fuer diese Ansicht.</p>
+      </div>
+
+      <section id="mapFrame" class="chat-frame map-frame">
+        <div id="mapEmptyState" class="map-empty-state">Noch keine Kartenebene verfuegbar.</div>
+        <div id="mapStage" class="map-stage hidden">
+          <img id="mapPreviewImage" class="map-image" alt="Aktuelle Eldran-Karte">
+          <div id="mapOverlayLayer" class="map-overlay-layer"></div>
+          <div id="mapPinLayer" class="map-pin-layer"></div>
+          <canvas id="mapDrawingCanvas" class="map-canvas"></canvas>
+        </div>
+      </section>
+      <section id="mapPinDetailCard" class="map-pin-detail hidden">
+        <div id="mapPinDetailHeader" class="command-panel-header map-pin-detail-header">
+          <p class="eyebrow">Pin</p>
+          <div class="map-pin-detail-actions">
+            <button id="mapPinSaveButton" class="ghost-button compact-button hidden" type="button">Speichern</button>
+            <button id="mapPinDeleteButton" class="ghost-button compact-button hidden" type="button">Loeschen</button>
+            <button id="mapPinDetailCloseButton" class="ghost-button compact-button" type="button">Schliessen</button>
+          </div>
+        </div>
+        <label class="draw-control">
+          <span class="file-meta">Name</span>
+          <input id="mapPinDetailName" class="sidebar-input" type="text" readonly>
+        </label>
+        <label class="draw-control">
+          <span class="file-meta">Beschreibung</span>
+          <textarea id="mapPinDetailDescription" class="db-textarea pin-textarea" readonly></textarea>
+        </label>
+        <label class="draw-control hidden" id="mapPinDetailImageLabel">
+          <span class="file-meta">Bild ersetzen</span>
+          <input id="mapPinDetailImageInput" class="sidebar-input" type="file" accept="image/*">
+        </label>
+        <label class="draw-control hidden" id="mapPinDetailShowLabelWrap">
+          <span class="file-meta">Name auf Karte anzeigen</span>
+          <input id="mapPinDetailShowLabel" type="checkbox">
+        </label>
+        <label class="draw-control hidden" id="mapPinDetailHiddenWrap">
+          <span class="file-meta">Nur fuer Spielleiter/Admin sichtbar</span>
+          <input id="mapPinDetailHidden" type="checkbox">
+        </label>
+        <label class="draw-control hidden" id="mapPinDetailAssignedWrap">
+          <span class="file-meta">Zugeordneter Spieler</span>
+          <select id="mapPinDetailAssignedUser" class="sidebar-input"></select>
+        </label>
+        <label class="draw-control hidden" id="mapPinDetailVisionWrap">
+          <span class="file-meta">Sichtweite</span>
+          <input id="mapPinDetailVisionInput" class="range-input" type="range" min="5" max="60" step="1" value="18">
+          <span id="mapPinDetailVisionValue" class="file-meta">18 %</span>
+        </label>
+        <label class="draw-control hidden" id="mapPinDetailLinkedMapWrap">
+          <span class="file-meta">Verlinktes Ziel</span>
+          <select id="mapPinDetailLinkedMap" class="sidebar-input"></select>
+        </label>
+        <div id="mapPinDetailLinkedMapActions" class="draw-control hidden">
+          <div class="stack-actions horizontal-actions">
+            <button id="mapPinDetailActivateMapButton" class="ghost-button compact-button" type="button">Karte live schalten</button>
+          </div>
+          <p id="mapPinDetailLinkedMapStatus" class="upload-hint">Keine Karte verlinkt.</p>
+        </div>
+        <label class="draw-control hidden" id="mapPinDetailSoundLabel">
+          <span class="file-meta">Sound ersetzen</span>
+          <input id="mapPinDetailSoundInput" class="sidebar-input" type="file" accept="audio/*,video/mp4,.mp4,.m4a,.webm">
+        </label>
+        <div id="mapPinDetailSoundWrap" class="draw-control hidden">
+          <span class="file-meta">Sound</span>
+          <div class="stack-actions horizontal-actions">
+            <button id="mapPinDetailSoundPlayButton" class="ghost-button compact-button" type="button">Sound starten</button>
+          </div>
+          <p id="mapPinDetailSoundStatus" class="upload-hint">Kein Sound hinterlegt.</p>
+        </div>
+        <div id="mapPinDetailGroupWrap" class="draw-control hidden">
+          <span class="file-meta">Token-Gruppe</span>
+          <div class="stack-actions horizontal-actions">
+            <button id="mapPinGroupButton" class="ghost-button compact-button" type="button">Auswahl gruppieren</button>
+            <button id="mapPinUngroupButton" class="ghost-button compact-button" type="button">Gruppe trennen</button>
+          </div>
+          <p id="mapPinGroupStatus" class="upload-hint">Mit Strg-Klick mehrere Tokens auswaehlen.</p>
+        </div>
+        <img id="mapPinDetailImage" class="map-pin-detail-image hidden" alt="Pin-Bild">
+      </section>
+    </section>
+
+    <aside class="sidebar sidebar-right" data-panel-sidebar="right">
+      <div class="panel-column" data-panel-column="right">
+        <section class="upload-panel workspace-panel" data-panel-id="pins">
+          <div class="panel-header" data-panel-drag>
+            <p class="eyebrow">Pins</p>
+            <button class="ghost-button compact-button panel-toggle" data-panel-toggle type="button" aria-expanded="true">-</button>
+          </div>
+          <div data-panel-content>
+            <label class="draw-control">
+              <span class="file-meta">Name</span>
+              <input id="mapPinNameInput" class="sidebar-input" type="text" placeholder="Pin-Name">
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Beschreibung</span>
+              <textarea id="mapPinDescriptionInput" class="db-textarea pin-textarea" placeholder="Optional"></textarea>
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Bild</span>
+              <input id="mapPinImageInput" class="sidebar-input" type="file" accept="image/*">
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Nur fuer Spielleiter/Admin sichtbar</span>
+              <input id="mapPinHiddenInput" type="checkbox">
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Verlinktes Ziel</span>
+              <select id="mapPinTargetMapSelect" class="sidebar-input"></select>
+            </label>
+            <button id="mapPinPlacementButton" class="ghost-button compact-button" type="button">Pin setzen</button>
+            <p id="mapPinStatus" class="upload-hint">Pin-Modus aus.</p>
+            <div class="map-token-divider"></div>
+            <p class="eyebrow">Spieler-Token</p>
+            <p class="upload-hint">Spieler koennen nur ihre zugeordneten Tokens bewegen. Spielleiter/Admin alle. Mehrfachauswahl per Strg-Klick.</p>
+            <label class="draw-control">
+              <span class="file-meta">Token-Name</span>
+              <input id="mapTokenNameInput" class="sidebar-input" type="text" placeholder="Token-Name">
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Zugeordneter Spieler</span>
+              <select id="mapTokenAssignedUserSelect" class="sidebar-input"></select>
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Token-Bild</span>
+              <input id="mapTokenImageInput" class="sidebar-input" type="file" accept="image/*">
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Sichtweite</span>
+              <input id="mapTokenVisionInput" class="range-input" type="range" min="5" max="60" step="1" value="18">
+              <span id="mapTokenVisionValue" class="file-meta">18 %</span>
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Direkt auf Spielleiter-Ebene</span>
+              <input id="mapTokenLayerInput" type="checkbox">
+            </label>
+            <button id="mapTokenPlacementButton" class="ghost-button compact-button" type="button">Token setzen</button>
+            <p id="mapTokenStatus" class="upload-hint">Token-Modus aus.</p>
+            <div class="map-token-divider"></div>
+            <p class="eyebrow">Sound-Token</p>
+            <p class="upload-hint">Nur fuer Spielleiter/Admin sichtbar. Beim Start pausiert die Musik, der Sound laeuft und danach geht der Track weiter.</p>
+            <label class="draw-control">
+              <span class="file-meta">Token-Name</span>
+              <input id="mapSoundTokenNameInput" class="sidebar-input" type="text" placeholder="Sound-Token-Name">
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Sounddatei</span>
+              <input id="mapSoundTokenFileInput" class="sidebar-input" type="file" accept="audio/*,video/mp4,.mp4,.m4a,.webm">
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Direkt auf Spielleiter-Ebene</span>
+              <input id="mapSoundTokenLayerInput" type="checkbox" checked>
+            </label>
+            <button id="mapSoundTokenPlacementButton" class="ghost-button compact-button" type="button">Sound-Token setzen</button>
+            <p id="mapSoundTokenStatus" class="upload-hint">Sound-Token-Modus aus.</p>
+          </div>
+        </section>
+
+        <section class="upload-panel workspace-panel" data-panel-id="music">
+          <div class="panel-header" data-panel-drag>
+            <p class="eyebrow">Musik</p>
+            <button class="ghost-button compact-button panel-toggle" data-panel-toggle type="button" aria-expanded="true">-</button>
+          </div>
+          <div data-panel-content>
+            <div class="music-player-frame">
+              <audio id="mapMusicAudio" class="music-player-audio" controls preload="metadata"></audio>
+            </div>
+            <label id="mapMusicVolumeWrap" class="draw-control music-volume-wrap hidden">
+              <span class="file-meta">Lautstaerke</span>
+              <button id="mapMusicMuteButton" class="ghost-button compact-button" type="button">Mute</button>
+              <input id="mapMusicVolumeInput" class="range-input" type="range" min="0" max="100" step="1" value="100">
+            </label>
+            <p id="mapMusicSource" class="upload-hint">Keine Musik aktiv.</p>
+            <p id="mapMusicStatus" class="upload-hint">Kein Track aktiv.</p>
+            <div id="mapMusicManagerWrap">
+              <label class="draw-control">
+                <span class="file-meta">Gespeicherte Tracks</span>
+                <select id="mapMusicTrackSelect" class="sidebar-input"></select>
+              </label>
+              <label class="draw-control">
+                <span class="file-meta">Audiodatei</span>
+                <input id="mapMusicFileInput" class="sidebar-input" type="file" accept="audio/*,video/mp4,.mp4,.m4a,.webm">
+              </label>
+              <div class="stack-actions horizontal-actions">
+                <button id="mapMusicLoadButton" class="ghost-button compact-button" type="button">Auswahl laden</button>
+                <button id="mapMusicPlayButton" class="ghost-button compact-button" type="button">Play</button>
+                <button id="mapMusicPauseButton" class="ghost-button compact-button" type="button">Pause</button>
+                <button id="mapMusicClearButton" class="ghost-button compact-button" type="button">Stoppen</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="upload-panel command-panel workspace-panel" data-panel-id="commands">
+          <div class="panel-header" data-panel-drag>
+            <div class="command-panel-header">
+              <p class="eyebrow">Chat</p>
+              <div class="command-panel-actions">
+                <div id="commandChatStatus" class="mini-status">Bereit</div>
+                <button id="commandChatClearButton" class="ghost-button compact-button" type="button">Clear</button>
+              </div>
+            </div>
+            <button class="ghost-button compact-button panel-toggle" data-panel-toggle type="button" aria-expanded="true">-</button>
+          </div>
+          <div data-panel-content class="command-panel-body">
+            <div id="commandChatMessages" class="command-messages"></div>
+            <form id="commandChatForm" class="command-composer">
+              <input id="commandChatInput" class="sidebar-input" type="text" placeholder="Nachricht" autocomplete="off">
+              <button class="ghost-button compact-button" type="submit">Senden</button>
+            </form>
+          </div>
+        </section>
+      </div>
+    </aside>
+  </main>
+
+  <script src="/static/auth-ui.js?v=10" defer></script>
+  <script src="/static/command-chat.js?v=10" defer></script>
+<script src="/static/music-player.js?v=7" defer></script>
+  <script src="/static/project-selector.js?v=4" defer></script>
+  <script src="/static/panel-layout.js?v=5" defer></script>
+  <script src="/static/map-canvas.js?v=58" defer></script>
+  <script src="/static/map.js?v=39" defer></script>
+</body>
+</html>

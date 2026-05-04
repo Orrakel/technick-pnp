@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eldran Projekt anlegen</title>
+  <link rel="stylesheet" href="/static/style.css?v=16">
+</head>
+<body class="project-setup-page" data-route-mode="local">
+  <main class="project-setup-shell">
+    <header class="project-setup-header">
+      <div>
+        <p class="eyebrow">Projektanlage</p>
+        <h1>Neues Projekt</h1>
+      </div>
+      <nav class="top-nav">
+        <a class="nav-link" data-surface-link="map" href="/karte">Karte</a>
+        <a class="nav-link" data-gm-only data-surface-link="battlemap" href="/battlemap">Battlemap</a>
+        <a class="nav-link" data-nav-link="sheet" href="/charakterbogen">Charakterbogen</a>
+        <a class="nav-link" href="/wiki">Wiki</a>
+      </nav>
+      <div class="auth-strip">
+        <span data-current-user class="file-meta"></span>
+        <button data-logout-button class="ghost-button compact-button" type="button">Logout</button>
+      </div>
+    </header>
+
+    <section class="project-setup-layout">
+      <form id="projectSetupForm" class="project-setup-form">
+        <section class="project-setup-section">
+          <div class="project-step-badge">1</div>
+          <div>
+            <p class="eyebrow">Grunddaten</p>
+            <label class="draw-control">
+              <span class="file-meta">Projektname</span>
+              <input id="projectSetupName" class="sidebar-input" type="text" placeholder="Kampagnenname" required>
+            </label>
+          </div>
+        </section>
+
+        <section class="project-setup-section">
+          <div class="project-step-badge">2</div>
+          <div>
+            <p class="eyebrow">Regelwerk</p>
+            <div class="ruleset-options" role="radiogroup" aria-label="Regelwerk">
+              <label class="ruleset-option">
+                <input type="radio" name="ruleset" value="dnd" checked>
+                <span>DnD</span>
+              </label>
+              <label class="ruleset-option">
+                <input type="radio" name="ruleset" value="nova_gaia">
+                <span>Nova Gaia</span>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section class="project-setup-section">
+          <div class="project-step-badge">3</div>
+          <div>
+            <p class="eyebrow">Spieler</p>
+            <div id="projectSetupPlayers" class="player-check-list">
+              <p class="upload-hint">Spieler werden geladen...</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="project-setup-section">
+          <div class="project-step-badge">4</div>
+          <div>
+            <p class="eyebrow">Startkarte</p>
+            <label class="draw-control">
+              <span class="file-meta">Name der leeren Karte</span>
+              <input id="projectSetupMapName" class="sidebar-input" type="text" value="Startkarte" required>
+            </label>
+            <label class="draw-control inline-check">
+              <input id="projectSetupCreateMap" type="checkbox" checked>
+              <span class="file-meta">Leere Karte direkt anlegen</span>
+            </label>
+          </div>
+        </section>
+
+        <div class="project-setup-actions">
+          <button id="projectSetupSubmit" class="upload-button" type="submit">Projekt erstellen</button>
+          <a class="ghost-button compact-button" data-surface-link="map" href="/karte">Abbrechen</a>
+        </div>
+        <p id="projectSetupStatus" class="upload-hint">Bereit.</p>
+      </form>
+
+      <aside class="project-guide">
+        <p class="eyebrow">Anleitung</p>
+        <h2>Projekt mit allem Drum und Dran anlegen</h2>
+        <ol>
+          <li>Projekt benennen und das passende Regelwerk auswaehlen.</li>
+          <li>Alle vorhandenen Spieler markieren, die Zugriff auf das Projekt bekommen sollen.</li>
+          <li>Die leere Startkarte anlegen lassen. Sie ist ohne Bild und kann danach im Kartenbereich gefuellt werden.</li>
+          <li>Nach dem Erstellen auf der Karte Bilder, Ebenen, Tokens, Sounds und Wiki-Inhalte ergaenzen.</li>
+          <li>Charakterboegen fuer die zugewiesenen Spieler im Charakterbereich anlegen oder bearbeiten.</li>
+        </ol>
+      </aside>
+    </section>
+  </main>
+
+  <script src="/static/auth-ui.js?v=10" defer></script>
+  <script src="/static/project-setup.js?v=1" defer></script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eldran Remote Chat</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="remote-shell">
+    <section class="remote-chat-panel">
+      <header class="chat-header remote-header">
+        <div>
+          <p class="eyebrow">Eldran</p>
+          <h2>Remote Chat</h2>
+        </div>
+        <div id="remoteStatusBadge" class="status-badge">Bereit</div>
+      </header>
+
+      <div class="chat-frame remote-frame">
+        <div id="remoteMessages" class="messages" aria-live="polite">
+          <article class="message assistant">
+            <div class="message-role">Eldran</div>
+            <div class="message-content">
+              Ich bin bereit. Stelle mir deine Frage zu Nova Gaia.
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <form id="remoteChatForm" class="composer">
+        <label class="sr-only" for="remoteMessageInput">Nachricht</label>
+        <textarea
+          id="remoteMessageInput"
+          name="message"
+          rows="1"
+          placeholder="Schreibe deine Nachricht..."
+          required
+        ></textarea>
+        <button id="remoteSendButton" type="submit">Senden</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="/static/remote.js" defer></script>
+</body>
+</html>

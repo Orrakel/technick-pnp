@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eldran Karte</title>
+  <link rel="stylesheet" href="/static/style.css?v=15">
+</head>
+<body>
+  <main id="remoteMapPanelBoard" class="remote-shell">
+    <aside class="remote-sidebar" data-panel-sidebar="left">
+      <details class="burger-menu">
+        <summary class="burger-button" aria-label="Menue oeffnen"><span class="burger-icon" aria-hidden="true"></span></summary>
+        <div class="burger-menu-panel">
+          <nav class="top-nav burger-nav">
+            <a class="nav-link active" data-surface-link="map" href="/Karte">Karte</a>
+            <a class="nav-link" data-gm-only data-surface-link="battlemap" href="/Battlemap">Battlemap</a>
+            <a class="nav-link" data-nav-link="sheet" href="/Charakterbogen">Charakterbogen</a>
+            <a class="nav-link" href="/wiki">Wiki</a>
+            <a class="nav-link hidden" data-admin-only href="/db">Datenbank</a>
+          </nav>
+          <div class="auth-strip burger-auth">
+            <span data-current-user class="file-meta"></span>
+            <button data-logout-button class="ghost-button compact-button" type="button">Logout</button>
+          </div>
+        </div>
+      </details>
+      <div class="panel-column" data-panel-column="left">
+        <section class="upload-panel workspace-panel" data-panel-id="project">
+          <div class="panel-header" data-panel-drag>
+            <p class="eyebrow">Projekt</p>
+            <button class="ghost-button compact-button panel-toggle" data-panel-toggle type="button" aria-expanded="true">-</button>
+          </div>
+          <div data-panel-content>
+            <label class="draw-control">
+              <span class="file-meta">Aktives Projekt</span>
+              <select id="projectSelect" class="sidebar-input"></select>
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Neues Projekt</span>
+              <input id="projectNameInput" class="sidebar-input" type="text" placeholder="Projektname">
+            </label>
+            <button id="projectCreateButton" class="ghost-button compact-button" type="button">Projekt-Wizard oeffnen</button>
+            <div id="projectPlayerList" class="stack-actions"></div>
+            <p id="projectStatus" class="upload-hint">Projekt wird geladen...</p>
+          </div>
+        </section>
+        <section class="upload-panel workspace-panel" data-panel-id="map-controls">
+          <div class="panel-header" data-panel-drag>
+            <p class="eyebrow">Karte</p>
+            <button class="ghost-button compact-button panel-toggle" data-panel-toggle type="button" aria-expanded="true">-</button>
+          </div>
+          <div data-panel-content>
+            <div id="remoteMapControls">
+              <div id="remoteMapManageControls" class="hidden">
+                <label class="draw-control">
+                  <span class="file-meta">Neue Karte</span>
+                  <input id="remoteMapNameInput" class="sidebar-input" type="text" placeholder="Kartenname">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Bild</span>
+                  <input id="remoteMapCreateImageInput" class="sidebar-input" type="file" accept="image/*">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Hintergrundfarbe</span>
+                  <input id="remoteMapCreateBackgroundColorInput" class="color-input" type="color" value="#223044">
+                </label>
+                <button id="remoteMapCreateButton" class="ghost-button compact-button" type="button">Karte anlegen</button>
+                <label class="draw-control">
+                  <span class="file-meta">Ausgewaehlte Karte umbenennen</span>
+                  <input id="remoteMapRenameInput" class="sidebar-input" type="text" placeholder="Neuer Kartenname">
+                </label>
+                <button id="remoteMapRenameButton" class="ghost-button compact-button" type="button">Umbenennen</button>
+                <button id="remoteMapActivateButton" class="ghost-button compact-button" type="button">Fuer Spieler anzeigen</button>
+                <button id="remoteMapDeleteButton" class="ghost-button compact-button" type="button">Karte loeschen</button>
+                <p id="remoteMapListStatus" class="upload-hint">Aktive Karte wird allen Spielern gezeigt.</p>
+                <div id="remoteMapList" class="chat-list"></div>
+                <label class="upload-button" for="remoteMapImageInput">Aktive Ebene aktualisieren</label>
+                <input id="remoteMapImageInput" type="file" accept="image/*" hidden>
+                <p id="remoteMapUploadStatus" class="upload-hint">Nur fuer Spielleiter und Admins.</p>
+                <label class="draw-control">
+                  <span class="file-meta">Pin-Name</span>
+                  <input id="remoteMapPinNameInput" class="sidebar-input" type="text" placeholder="Pin-Name">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Beschreibung</span>
+                  <textarea id="remoteMapPinDescriptionInput" class="db-textarea pin-textarea" placeholder="Optional"></textarea>
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Bild</span>
+                  <input id="remoteMapPinImageInput" class="sidebar-input" type="file" accept="image/*">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Nur fuer Spielleiter/Admin sichtbar</span>
+                  <input id="remoteMapPinHiddenInput" type="checkbox">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Verlinktes Ziel</span>
+                  <select id="remoteMapPinTargetMapSelect" class="sidebar-input"></select>
+                </label>
+                <button id="remoteMapPinPlacementButton" class="ghost-button compact-button" type="button">Pin setzen</button>
+                <p id="remoteMapPinStatus" class="upload-hint">Pin-Modus aus.</p>
+                <label class="draw-control">
+                  <span class="file-meta">Token-Name</span>
+                  <input id="remoteMapTokenNameInput" class="sidebar-input" type="text" placeholder="Token-Name">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Zugeordneter Spieler</span>
+                  <select id="remoteMapTokenAssignedUserSelect" class="sidebar-input"></select>
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Token-Bild</span>
+                  <input id="remoteMapTokenImageInput" class="sidebar-input" type="file" accept="image/*">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Sichtweite</span>
+                  <input id="remoteMapTokenVisionInput" class="range-input" type="range" min="5" max="60" step="1" value="18">
+                  <span id="remoteMapTokenVisionValue" class="file-meta">18 %</span>
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Direkt auf Spielleiter-Ebene</span>
+                  <input id="remoteMapTokenLayerInput" type="checkbox">
+                </label>
+                <button id="remoteMapTokenPlacementButton" class="ghost-button compact-button" type="button">Token setzen</button>
+                <p id="remoteMapTokenStatus" class="upload-hint">Token-Modus aus.</p>
+                <div class="map-token-divider"></div>
+                <p class="eyebrow">Sound-Token</p>
+                <p class="upload-hint">Nur fuer Spielleiter/Admin sichtbar. Beim Start pausiert die Musik, der Sound laeuft und danach geht der Track weiter.</p>
+                <label class="draw-control">
+                  <span class="file-meta">Token-Name</span>
+                  <input id="remoteMapSoundTokenNameInput" class="sidebar-input" type="text" placeholder="Sound-Token-Name">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Sounddatei</span>
+                  <input id="remoteMapSoundTokenFileInput" class="sidebar-input" type="file" accept="audio/*,video/mp4,.mp4,.m4a,.webm">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Direkt auf Spielleiter-Ebene</span>
+                  <input id="remoteMapSoundTokenLayerInput" type="checkbox" checked>
+                </label>
+                <button id="remoteMapSoundTokenPlacementButton" class="ghost-button compact-button" type="button">Sound-Token setzen</button>
+                <p id="remoteMapSoundTokenStatus" class="upload-hint">Sound-Token-Modus aus.</p>
+              </div>
+              <p id="remoteMapStatusText" class="upload-hint">Gemeinsame Zeichenflaeche fuer alle Clients.</p>
+              <div class="draw-controls">
+                <label class="draw-control">
+                  <span class="file-meta">Farbe</span>
+                  <input id="remoteMapDrawColorInput" class="color-input" type="color" value="#ff6b6b">
+                </label>
+                <label class="draw-control">
+                  <span class="file-meta">Dicke</span>
+                  <input id="remoteMapDrawWidthInput" class="range-input" type="range" min="1" max="24" step="1" value="3">
+                  <span id="remoteMapDrawWidthValue" class="file-meta">3 px</span>
+                </label>
+              </div>
+              <button id="remoteMapDrawingsClearButton" class="ghost-button compact-button hidden" type="button">Alles Gezeichnete loeschen</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <section class="remote-map-panel">
+      <div class="map-sidebar-toggles">
+        <button class="ghost-button compact-button map-sidebar-toggle" data-sidebar-toggle="left" type="button" aria-label="Linke Seitenleiste ein- oder ausklappen"><<</button>
+        <button class="ghost-button compact-button map-sidebar-toggle" data-sidebar-toggle="right" type="button" aria-label="Rechte Seitenleiste ein- oder ausklappen">>></button>
+      </div>
+      <h2 id="remoteMapTitle" class="hidden">Aktuelle Karte</h2>
+      <div class="map-zoom-panel remote-map-zoom-panel">
+        <label class="draw-control">
+          <span class="file-meta">Zoom</span>
+          <input id="remoteMapZoomInput" class="range-input" type="range" min="50" max="300" step="10" value="100">
+          <span id="remoteMapZoomValue" class="file-meta">100 %</span>
+        </label>
+      </div>
+      <div class="map-layer-panel remote-map-layer-panel">
+        <div class="map-layer-panel-header">
+          <span class="file-meta">Ebenen</span>
+        </div>
+        <div id="remoteMapLayerNavigatorWrap" class="map-layer-navigator hidden">
+          <button id="remoteMapLayerNavigatorToggle" class="map-layer-navigator-toggle" type="button" aria-expanded="true">
+            <span class="file-meta">Ebenenregler</span>
+          </button>
+          <div id="remoteMapLayerNavigatorBody" class="map-layer-navigator-body">
+            <div id="remoteMapLayerStack" class="map-layer-stack" aria-label="Ebenen"></div>
+            <div class="map-layer-nav-actions">
+              <button id="remoteMapLayerUpButton" class="ghost-button compact-button" type="button">Ebene hoch</button>
+              <button id="remoteMapLayerDownButton" class="ghost-button compact-button" type="button">Ebene runter</button>
+            </div>
+          </div>
+        </div>
+        <label id="remoteMapLayerSelectWrap" class="draw-control map-layer-inline-control">
+          <span class="file-meta">Aktive Ebene</span>
+          <select id="remoteMapLayerSelect" class="sidebar-input"></select>
+        </label>
+        <label id="remoteMapLayerRenameWrap" class="draw-control map-layer-inline-control hidden">
+          <span class="file-meta">Ebenenname</span>
+          <input id="remoteMapLayerNameInput" class="sidebar-input" type="text" placeholder="Ebene 1">
+        </label>
+        <div id="remoteMapLayerManagerWrap" class="stack-actions horizontal-actions hidden">
+          <button id="remoteMapLayerRenameButton" class="ghost-button compact-button" type="button">Namen speichern</button>
+          <button id="remoteMapLayerCreateButton" class="ghost-button compact-button" type="button">Ebene hinzufuegen</button>
+        </div>
+        <label id="remoteMapLayerImageWrap" class="draw-control map-layer-inline-control hidden">
+          <span class="file-meta">Bild fuer neue Ebene</span>
+          <input id="remoteMapLayerImageInput" class="sidebar-input" type="file" accept="image/*">
+        </label>
+        <label id="remoteMapLayerBackgroundWrap" class="draw-control map-layer-inline-control hidden">
+          <span class="file-meta">Farbebene</span>
+          <input id="remoteMapLayerBackgroundColorInput" class="color-input" type="color" value="#223044">
+        </label>
+        <label id="remoteMapLayerGmWrap" class="draw-control map-layer-inline-toggle hidden">
+          <span class="file-meta">GM-Ebene einblenden</span>
+          <input id="remoteMapShowGmLayerInput" type="checkbox" checked>
+        </label>
+        <label id="remoteMapCreateOnGmWrap" class="draw-control map-layer-inline-toggle hidden">
+          <span class="file-meta">GM-Ebene aktiv</span>
+          <input id="remoteMapCreateOnGmInput" type="checkbox">
+        </label>
+        <label id="remoteMapFogEnabledWrap" class="draw-control map-layer-inline-toggle hidden">
+          <span class="file-meta">Nebel aktiv</span>
+          <input id="remoteMapFogEnabledInput" type="checkbox">
+        </label>
+        <div id="remoteMapFogManagerWrap" class="stack-actions horizontal-actions hidden">
+          <button id="remoteMapFogWallModeButton" class="ghost-button compact-button" type="button">Wandmodus</button>
+          <button id="remoteMapFogDeleteWallButton" class="ghost-button compact-button" type="button">Letzte Wand</button>
+          <button id="remoteMapFogClearExploredButton" class="ghost-button compact-button" type="button">Vision zuruecksetzen</button>
+        </div>
+        <p id="remoteMapLayerStatus" class="upload-hint">Die Ebenenauswahl gilt nur fuer diese Ansicht.</p>
+      </div>
+      <section id="remoteMapFrame" class="chat-frame remote-frame map-frame remote-map-frame">
+        <div id="remoteMapEmptyState" class="map-empty-state">Noch keine Kartenebene verfuegbar.</div>
+        <div id="remoteMapStage" class="map-stage hidden">
+          <img id="remoteMapImage" class="map-image" alt="Aktuelle Eldran-Karte">
+          <div id="remoteMapOverlayLayer" class="map-overlay-layer"></div>
+          <div id="remoteMapPinLayer" class="map-pin-layer"></div>
+          <canvas id="remoteMapDrawingCanvas" class="map-canvas"></canvas>
+        </div>
+      </section>
+      <section id="remoteMapPinDetailCard" class="map-pin-detail hidden">
+        <div id="remoteMapPinDetailHeader" class="command-panel-header map-pin-detail-header">
+          <p class="eyebrow">Pin</p>
+          <div class="map-pin-detail-actions">
+            <button id="remoteMapPinSaveButton" class="ghost-button compact-button hidden" type="button">Speichern</button>
+            <button id="remoteMapPinDeleteButton" class="ghost-button compact-button hidden" type="button">Loeschen</button>
+            <button id="remoteMapPinDetailCloseButton" class="ghost-button compact-button" type="button">Schliessen</button>
+          </div>
+        </div>
+        <label class="draw-control">
+          <span class="file-meta">Name</span>
+          <input id="remoteMapPinDetailName" class="sidebar-input" type="text" readonly>
+        </label>
+        <label class="draw-control">
+          <span class="file-meta">Beschreibung</span>
+          <textarea id="remoteMapPinDetailDescription" class="db-textarea pin-textarea" readonly></textarea>
+        </label>
+        <label class="draw-control hidden" id="remoteMapPinDetailImageLabel">
+          <span class="file-meta">Bild ersetzen</span>
+          <input id="remoteMapPinDetailImageInput" class="sidebar-input" type="file" accept="image/*">
+        </label>
+        <label class="draw-control hidden" id="remoteMapPinDetailShowLabelWrap">
+          <span class="file-meta">Name auf Karte anzeigen</span>
+          <input id="remoteMapPinDetailShowLabel" type="checkbox">
+        </label>
+        <label class="draw-control hidden" id="remoteMapPinDetailHiddenWrap">
+          <span class="file-meta">Nur fuer Spielleiter/Admin sichtbar</span>
+          <input id="remoteMapPinDetailHidden" type="checkbox">
+        </label>
+        <label class="draw-control hidden" id="remoteMapPinDetailAssignedWrap">
+          <span class="file-meta">Zugeordneter Spieler</span>
+          <select id="remoteMapPinDetailAssignedUser" class="sidebar-input"></select>
+        </label>
+        <label class="draw-control hidden" id="remoteMapPinDetailVisionWrap">
+          <span class="file-meta">Sichtweite</span>
+          <input id="remoteMapPinDetailVisionInput" class="range-input" type="range" min="5" max="60" step="1" value="18">
+          <span id="remoteMapPinDetailVisionValue" class="file-meta">18 %</span>
+        </label>
+        <label class="draw-control hidden" id="remoteMapPinDetailLinkedMapWrap">
+          <span class="file-meta">Verlinktes Ziel</span>
+          <select id="remoteMapPinDetailLinkedMap" class="sidebar-input"></select>
+        </label>
+        <div id="remoteMapPinDetailLinkedMapActions" class="draw-control hidden">
+          <div class="stack-actions horizontal-actions">
+            <button id="remoteMapPinDetailActivateMapButton" class="ghost-button compact-button" type="button">Karte live schalten</button>
+          </div>
+          <p id="remoteMapPinDetailLinkedMapStatus" class="upload-hint">Keine Karte verlinkt.</p>
+        </div>
+        <label class="draw-control hidden" id="remoteMapPinDetailSoundLabel">
+          <span class="file-meta">Sound ersetzen</span>
+          <input id="remoteMapPinDetailSoundInput" class="sidebar-input" type="file" accept="audio/*,video/mp4,.mp4,.m4a,.webm">
+        </label>
+        <div id="remoteMapPinDetailSoundWrap" class="draw-control hidden">
+          <span class="file-meta">Sound</span>
+          <div class="stack-actions horizontal-actions">
+            <button id="remoteMapPinDetailSoundPlayButton" class="ghost-button compact-button" type="button">Sound starten</button>
+          </div>
+          <p id="remoteMapPinDetailSoundStatus" class="upload-hint">Kein Sound hinterlegt.</p>
+        </div>
+        <div id="remoteMapPinDetailGroupWrap" class="draw-control hidden">
+          <span class="file-meta">Token-Gruppe</span>
+          <div class="stack-actions horizontal-actions">
+            <button id="remoteMapPinGroupButton" class="ghost-button compact-button" type="button">Auswahl gruppieren</button>
+            <button id="remoteMapPinUngroupButton" class="ghost-button compact-button" type="button">Gruppe trennen</button>
+          </div>
+          <p id="remoteMapPinGroupStatus" class="upload-hint">Mit Strg-Klick mehrere Tokens auswaehlen.</p>
+        </div>
+        <img id="remoteMapPinDetailImage" class="map-pin-detail-image hidden" alt="Pin-Bild">
+      </section>
+    </section>
+
+    <aside class="remote-sidebar remote-sidebar-right" data-panel-sidebar="right">
+      <div class="panel-column" data-panel-column="right">
+        <section class="upload-panel workspace-panel" data-panel-id="music">
+          <div class="panel-header" data-panel-drag>
+            <p class="eyebrow">Musik</p>
+            <button class="ghost-button compact-button panel-toggle" data-panel-toggle type="button" aria-expanded="true">-</button>
+          </div>
+          <div data-panel-content>
+            <div class="music-player-frame">
+              <audio id="remoteMapMusicAudio" class="music-player-audio" controls preload="metadata"></audio>
+            </div>
+            <label id="remoteMapMusicVolumeWrap" class="draw-control music-volume-wrap hidden">
+              <span class="file-meta">Lautstaerke</span>
+              <button id="remoteMapMusicMuteButton" class="ghost-button compact-button" type="button">Mute</button>
+              <input id="remoteMapMusicVolumeInput" class="range-input" type="range" min="0" max="100" step="1" value="100">
+            </label>
+            <p id="remoteMapMusicSource" class="upload-hint">Keine Musik aktiv.</p>
+            <p id="remoteMapMusicStatus" class="upload-hint">Kein Track aktiv.</p>
+            <div id="remoteMapMusicManagerWrap" class="hidden">
+              <label class="draw-control">
+                <span class="file-meta">Gespeicherte Tracks</span>
+                <select id="remoteMapMusicTrackSelect" class="sidebar-input"></select>
+              </label>
+              <label class="draw-control">
+                <span class="file-meta">Audiodatei</span>
+                <input id="remoteMapMusicFileInput" class="sidebar-input" type="file" accept="audio/*,video/mp4,.mp4,.m4a,.webm">
+              </label>
+              <div class="stack-actions horizontal-actions">
+                <button id="remoteMapMusicLoadButton" class="ghost-button compact-button" type="button">Auswahl laden</button>
+                <button id="remoteMapMusicPlayButton" class="ghost-button compact-button" type="button">Play</button>
+                <button id="remoteMapMusicPauseButton" class="ghost-button compact-button" type="button">Pause</button>
+                <button id="remoteMapMusicClearButton" class="ghost-button compact-button" type="button">Stoppen</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="upload-panel command-panel workspace-panel" data-panel-id="commands">
+          <div class="panel-header" data-panel-drag>
+            <div class="command-panel-header">
+              <p class="eyebrow">Chat</p>
+              <div id="remoteCommandChatStatus" class="mini-status">Bereit</div>
+            </div>
+            <button class="ghost-button compact-button panel-toggle" data-panel-toggle type="button" aria-expanded="true">-</button>
+          </div>
+          <div data-panel-content class="command-panel-body">
+            <div id="remoteCommandChatMessages" class="command-messages"></div>
+            <form id="remoteCommandChatForm" class="command-composer">
+              <input id="remoteCommandChatInput" class="sidebar-input" type="text" placeholder="Nachricht" autocomplete="off">
+              <button class="ghost-button compact-button" type="submit">Senden</button>
+            </form>
+            <button id="remoteCommandChatClearButton" class="ghost-button compact-button hidden" type="button">Clear</button>
+          </div>
+        </section>
+      </div>
+    </aside>
+  </main>
+
+  <script src="/static/auth-ui.js?v=10" defer></script>
+  <script src="/static/command-chat.js?v=10" defer></script>
+<script src="/static/music-player.js?v=7" defer></script>
+  <script src="/static/project-selector.js?v=4" defer></script>
+  <script src="/static/panel-layout.js?v=5" defer></script>
+  <script src="/static/map-canvas.js?v=58" defer></script>
+  <script src="/static/remote-map.js?v=41" defer></script>
+</body>
+</html>

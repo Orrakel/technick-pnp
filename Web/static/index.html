@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eldran</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <aside class="sidebar">
+      <details class="burger-menu">
+        <summary class="burger-button" aria-label="Menue oeffnen"><span class="burger-icon" aria-hidden="true"></span></summary>
+        <div class="burger-menu-panel">
+          <nav class="top-nav burger-nav">
+            <a class="nav-link" data-surface-link="map" href="/karte">Karte</a>
+            <a class="nav-link" data-gm-only data-surface-link="battlemap" href="/battlemap">Battlemap</a>
+            <a class="nav-link" data-nav-link="sheet" href="/charakterbogen">Charakterbogen</a>
+            <a class="nav-link" href="/wiki">Wiki</a>
+            <a class="nav-link hidden" data-admin-only href="/db">Datenbank</a>
+          </nav>
+          <div class="auth-strip burger-auth">
+            <span data-current-user class="file-meta"></span>
+            <button data-logout-button class="ghost-button compact-button" type="button">Logout</button>
+          </div>
+        </div>
+      </details>
+      <div class="brand">
+        <span class="brand-kicker">Eldran</span>
+        <h1>Spielleiter-Assistenz</h1>
+        <p>Lokaler Chat fuer Weltenbau, NPCs, Orte und spontane Ideen im Pen-and-Paper.</p>
+      </div>
+      <section class="upload-panel">
+        <p class="eyebrow">Projekt</p>
+        <label class="draw-control">
+          <span class="file-meta">Aktives Projekt</span>
+          <select id="projectSelect" class="sidebar-input"></select>
+        </label>
+        <label class="draw-control">
+          <span class="file-meta">Neues Projekt</span>
+          <input id="projectNameInput" class="sidebar-input" type="text" placeholder="Projektname">
+        </label>
+        <button id="projectCreateButton" class="ghost-button compact-button" type="button">Projekt anlegen</button>
+        <div id="projectPlayerList" class="stack-actions"></div>
+        <p id="projectStatus" class="upload-hint">Projekt wird geladen...</p>
+      </section>
+      <section class="upload-panel">
+        <p class="eyebrow">Chats</p>
+        <div class="stack-actions">
+          <button id="newChatButton" class="ghost-button compact-button" type="button">Neuer Chat</button>
+        </div>
+        <div id="chatList" class="chat-list"></div>
+      </section>
+      <section class="upload-panel">
+        <p class="eyebrow">Ordnerimport</p>
+        <label class="sr-only" for="folderPathInput">Ordnerpfad</label>
+        <input id="folderPathInput" class="sidebar-input" type="text" placeholder="D:\\Regelwerke\\NovaGaia">
+        <div class="stack-actions">
+          <button id="importFolderButton" class="ghost-button compact-button" type="button">Ordner einlesen</button>
+          <button id="reloadFolderButton" class="ghost-button compact-button" type="button">Reload</button>
+        </div>
+        <p id="folderStatus" class="upload-hint">Ordnerdateien werden neu eingelesen und in der Datenbank ersetzt.</p>
+      </section>
+      <section class="upload-panel">
+        <p class="eyebrow">Modell</p>
+        <div class="temperature-panel">
+          <div class="temperature-row">
+            <label for="temperatureInput">Temperature</label>
+            <output id="temperatureValue" for="temperatureInput">0.0</output>
+          </div>
+          <input id="temperatureInput" class="temperature-slider" type="range" min="0" max="2" step="0.1" value="0">
+          <p class="upload-hint">Niedrig fuer konsistente Antworten, hoeher fuer mehr Varianz.</p>
+        </div>
+      </section>
+    </aside>
+
+    <section class="chat-panel">
+      <header class="chat-header">
+        <div>
+          <p class="eyebrow">Weboberflaeche</p>
+          <h2>Chat mit Eldran</h2>
+        </div>
+        <div id="statusBadge" class="status-badge">Bereit</div>
+      </header>
+
+      <div class="chat-frame">
+        <div id="messages" class="messages" aria-live="polite">
+          <article class="message assistant">
+            <div class="message-role">Eldran</div>
+            <div class="message-content">
+              Ich bin bereit. Frag mich nach Orten, NPCs, Quests oder Weltinformationen.
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <form id="chatForm" class="composer">
+        <label class="sr-only" for="messageInput">Nachricht</label>
+        <textarea
+          id="messageInput"
+          name="message"
+          rows="1"
+          placeholder="Schreibe deine Nachricht..."
+          required
+        ></textarea>
+        <button id="sendButton" type="submit">Senden</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="/static/auth-ui.js?v=10" defer></script>
+  <script src="/static/project-selector.js?v=3" defer></script>
+  <script src="/static/app.js?v=12" defer></script>
+</body>
+</html>

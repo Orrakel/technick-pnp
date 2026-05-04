@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eldran Login</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="login-shell">
+    <section class="login-card">
+      <div class="brand">
+        <span class="brand-kicker">Eldran</span>
+        <h1>Login</h1>
+        <p>Melde dich mit deinem bestehenden Benutzer an.</p>
+      </div>
+
+      <div id="authStatus" class="status-badge">Bereit</div>
+
+      <form id="loginForm" class="auth-form">
+        <input id="loginUsername" class="sidebar-input" type="text" placeholder="Login-Name" required>
+        <input id="loginPassword" class="sidebar-input" type="password" placeholder="Passwort" required>
+        <button class="ghost-button compact-button" type="submit">Einloggen</button>
+      </form>
+
+    </section>
+  </main>
+
+  <script src="/static/login.js?v=3" defer></script>
+</body>
+</html>

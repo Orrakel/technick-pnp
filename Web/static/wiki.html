@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eldran Wiki</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <aside class="sidebar">
+      <details class="burger-menu">
+        <summary class="burger-button" aria-label="Menue oeffnen"><span class="burger-icon" aria-hidden="true"></span></summary>
+        <div class="burger-menu-panel">
+          <nav class="top-nav burger-nav">
+            <a class="nav-link" data-surface-link="map" href="/karte">Karte</a>
+            <a class="nav-link" data-gm-only data-surface-link="battlemap" href="/battlemap">Battlemap</a>
+            <a class="nav-link" data-nav-link="sheet" href="/charakterbogen">Charakterbogen</a>
+            <a class="nav-link active" href="/wiki">Wiki</a>
+            <a class="nav-link hidden" data-admin-only href="/db">Datenbank</a>
+          </nav>
+          <div class="auth-strip burger-auth">
+            <span data-current-user class="file-meta"></span>
+            <button data-logout-button class="ghost-button compact-button" type="button">Logout</button>
+          </div>
+        </div>
+      </details>
+      <div class="brand">
+        <span class="brand-kicker">Eldran</span>
+        <h1>Wiki</h1>
+        <p>Automatisch aus Markdown-Dateien erzeugte Seiten mit internen Verlinkungen und Rueckverweisen.</p>
+      </div>
+      <section class="upload-panel">
+        <div class="stack-actions horizontal-actions">
+          <input id="wikiSearchInput" class="sidebar-input" type="search" placeholder="Seiten filtern">
+        </div>
+        <div id="wikiPageList" class="chat-list"></div>
+      </section>
+    </aside>
+
+    <section class="chat-panel wiki-panel">
+      <header class="chat-header">
+        <div>
+          <p class="eyebrow">Seite</p>
+          <h2 id="wikiTitle">Wiki wird geladen</h2>
+        </div>
+        <div id="wikiMeta" class="status-badge">Bereit</div>
+      </header>
+
+      <section class="chat-frame wiki-frame">
+        <article class="message assistant wiki-article">
+          <section id="wikiToc" class="wiki-toc hidden">
+            <div class="wiki-toc-title">Inhaltsverzeichnis</div>
+            <div id="wikiTocLinks" class="wiki-toc-links"></div>
+          </section>
+          <div id="wikiBody" class="message-content wiki-content"></div>
+        </article>
+      </section>
+    </section>
+
+    <aside class="sidebar sidebar-right">
+      <section class="upload-panel">
+        <p class="eyebrow">Verlinkte Seiten</p>
+        <div id="wikiLinks" class="wiki-link-list"></div>
+      </section>
+      <section class="upload-panel">
+        <p class="eyebrow">Rueckverweise</p>
+        <div id="wikiBacklinks" class="wiki-link-list"></div>
+      </section>
+    </aside>
+  </main>
+
+  <script src="/static/auth-ui.js?v=10" defer></script>
+  <script src="/static/wiki.js?v=1" defer></script>
+</body>
+</html>
