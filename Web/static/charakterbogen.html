@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Eldran Charakterbogen</title>
-  <link rel="stylesheet" href="/static/style.css?v=19">
+  <link rel="stylesheet" href="/static/style.css?v=57">
 </head>
 <body>
   <main class="app-shell">
@@ -16,8 +16,8 @@
             <a class="nav-link" data-surface-link="map" href="/karte">Karte</a>
             <a class="nav-link" data-gm-only data-surface-link="battlemap" href="/battlemap">Battlemap</a>
             <a class="nav-link active" data-nav-link="sheet" href="/charakterbogen">Charakterbogen</a>
-            <a class="nav-link" data-nav-link="builder" href="/charakter-builder">Builder</a>
             <a class="nav-link" href="/wiki">Wiki</a>
+            <a class="nav-link hidden" data-admin-only href="/notizen">Notizen</a>
             <a class="nav-link hidden" data-admin-only href="/db">Datenbank</a>
           </nav>
           <div class="auth-strip burger-auth">
@@ -46,8 +46,16 @@
       </section>
 
       <section class="upload-panel">
-        <p class="eyebrow">Spieler</p>
-        <p class="upload-hint">Spieler sehen nur ihren eigenen Bogen. Spielleiter sehen alle zugewiesenen Boegen des Projekts.</p>
+        <p class="eyebrow">Spieler, NPCs & Gegner</p>
+        <p class="upload-hint">Spieler sehen nur ihren eigenen Bogen. Spielleiter sehen Spieler, NPCs und Gegner getrennt nach Bereich.</p>
+        <div id="sheetNpcCreateWrap" class="stack-actions hidden">
+          <input id="sheetNpcNameInput" class="sidebar-input" type="text" placeholder="NPC-Name">
+          <select id="sheetNpcRoleSelect" class="sidebar-input">
+            <option value="npc">NPC</option>
+            <option value="gegner">Gegner</option>
+          </select>
+          <button id="sheetNpcCreateButton" class="ghost-button compact-button" type="button">Anlegen</button>
+        </div>
         <div id="sheetRosterList" class="character-roster-list"></div>
         <p id="sheetRosterStatus" class="upload-hint">Spielerliste wird geladen...</p>
       </section>
@@ -55,8 +63,6 @@
       <section class="upload-panel">
         <p class="eyebrow">Daten</p>
         <div id="novaGaiaDataActions" class="stack-actions">
-          <a class="upload-button" data-nav-link="builder" href="/charakter-builder">Neuen Charakter erstellen</a>
-          <a class="ghost-button compact-button" data-nav-link="builder" href="/charakter-builder">Builder oeffnen</a>
           <button id="sheetExportButton" class="ghost-button compact-button" type="button">JSON exportieren</button>
           <label for="sheetImportInput" class="upload-button">JSON importieren</label>
           <input id="sheetImportInput" type="file" accept="application/json" hidden>
@@ -65,6 +71,7 @@
         <div id="dndPdfActions" class="stack-actions hidden">
           <label for="dndPdfInput" class="upload-button">Charaktersheet-PDF einlesen</label>
           <input id="dndPdfInput" type="file" accept="application/pdf,.pdf" hidden>
+          <a id="dndSheetViewLink" class="upload-button hidden" href="#" target="_blank" rel="noopener">Sheet separat oeffnen</a>
           <a id="dndPdfOpenLink" class="ghost-button compact-button hidden" href="#" target="_blank" rel="noopener">PDF in neuem Tab oeffnen</a>
           <button id="dndPdfDeleteButton" class="ghost-button compact-button hidden" type="button">PDF loeschen</button>
         </div>
@@ -86,7 +93,6 @@
           <h3>Kein Charakterbogen verfuegbar</h3>
           <p>Weise dem Projekt zuerst einen Spieler zu oder waehle einen vorhandenen Eintrag aus der Liste.</p>
           <div class="character-empty-actions">
-            <a class="upload-button" data-nav-link="builder" href="/charakter-builder">Neuen Charakter erstellen</a>
           </div>
         </div>
 
@@ -377,7 +383,9 @@
     </aside>
   </main>
 
-  <script src="/static/auth-ui.js?v=10" defer></script>
-  <script src="/static/charakterbogen.js?v=10" defer></script>
+  <script src="/static/auth-ui.js?v=26" defer></script>
+  <script src="/static/sheet-rolls.js?v=10" defer></script>
+  <script src="/static/charakterbogen.js?v=45" defer></script>
 </body>
 </html>
+

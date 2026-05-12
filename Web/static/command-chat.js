@@ -22,11 +22,11 @@ function messageSignature(message) {
 }
 
 function isRollResultMessage(message) {
-  return message?.role === "system" && /\bwuerfelt\b/i.test(String(message?.content || ""));
+  return parseRollMessageData(message).length > 0;
 }
 
 function normalizeRollExpression(expression) {
-  return String(expression || "").replace(/\s+/g, "").replace(/^\+/, "").toLocaleLowerCase();
+  return String(expression || "").replace(/w/gi, "d").replace(/\s+/g, "").replace(/^\+/, "").toLocaleLowerCase();
 }
 
 function parseRollExpression(expression) {
@@ -69,12 +69,7 @@ function parseRollBreakdown(breakdown) {
   return (String(breakdown || "").match(/[+-]?\d+/g) || []).map((value) => Number.parseInt(value, 10));
 }
 
-function parseRollMessageData(content) {
-  const match = /^(.+?) wuerfelt ([^:]+):\s*(.+?)\s*=\s*(-?\d+)\s*$/i.exec(String(content || ""));
-  if (!match) {
-    return null;
-  }
-  const [, username, rawExpression, rawBreakdown, rawTotal] = match;
+function buildParsedRoll({ username, label = "", rawExpression, rawBreakdown, rawTotal }) {
   const parsedExpression = parseRollExpression(rawExpression);
   const breakdownValues = parseRollBreakdown(rawBreakdown);
   if (!parsedExpression || !breakdownValues.length) {
@@ -117,11 +112,36 @@ function parseRollMessageData(content) {
 
   return {
     username,
+    title: label ? `${username} wuerfelt ${label}` : "",
     expression: parsedExpression.expression,
     breakdown: String(rawBreakdown || "").trim(),
     total: Number.parseInt(rawTotal, 10),
     items,
   };
+}
+
+function parseRollMessageData(message) {
+  const content = typeof message === "string" ? message : String(message?.content || "");
+  const fallbackUsername = typeof message === "string" ? "" : String(message?.username || "");
+  const legacyMatch = /^(.+?) wuerfelt ([^:]+):\s*(.+?)\s*=\s*(-?\d+)\s*$/i.exec(content.trim());
+  if (legacyMatch) {
+    const [, username, rawExpression, rawBreakdown, rawTotal] = legacyMatch;
+    const parsed = buildParsedRoll({ username, rawExpression, rawBreakdown, rawTotal });
+    return parsed ? [parsed] : [];
+  }
+
+  const firstLine = content.split(/\r?\n/)[0] || "";
+  const actorMatch = /^(.+?)\s+(?:verwendet|wuerfelt)\b/i.exec(firstLine);
+  const username = actorMatch?.[1]?.trim() || fallbackUsername || "Spieler";
+  const rolls = [];
+  for (const line of content.split(/\r?\n/).slice(1)) {
+    const match = /^([^:]+):\s*([0-9dDwW+\-\s]+?)\s*=\s*([0-9+\-\s]+?)\s*=\s*(-?\d+)\s*$/i.exec(line.trim());
+    if (!match) continue;
+    const [, label, rawExpression, rawBreakdown, rawTotal] = match;
+    const parsed = buildParsedRoll({ username, label: label.trim(), rawExpression, rawBreakdown, rawTotal });
+    if (parsed) rolls.push(parsed);
+  }
+  return rolls;
 }
 
 let rollOverlayRoot = null;
@@ -152,7 +172,7 @@ function buildRollOverlay(parsed) {
 
   const title = document.createElement("div");
   title.className = "command-roll-overlay-title";
-  title.textContent = `${parsed.username} wuerfelt`;
+  title.textContent = parsed.title || `${parsed.username} wuerfelt`;
 
   const summary = document.createElement("div");
   summary.className = "command-roll-summary";
@@ -227,11 +247,11 @@ function runNextRollOverlay() {
 }
 
 function queueRollOverlay(message) {
-  const parsed = parseRollMessageData(message.content);
-  if (!parsed) {
+  const parsedRolls = parseRollMessageData(message);
+  if (!parsedRolls.length) {
     return;
   }
-  rollOverlayQueue.push(parsed);
+  rollOverlayQueue.push(...parsedRolls);
   runNextRollOverlay();
 }
 
@@ -257,6 +277,26 @@ function renderCommandMessage(message, animateRoll = false) {
   return article;
 }
 
+function notifyCommandChatUpdated(detail = {}) {
+  if (typeof window.eldranNotifyCommandChatUpdated === "function") {
+    window.eldranNotifyCommandChatUpdated(detail);
+    return;
+  }
+  const payload = {
+    ...detail,
+    nonce: `${Date.now()}:${Math.random().toString(36).slice(2)}`,
+  };
+  window.dispatchEvent(new CustomEvent("eldran:command-chat-updated", { detail: payload }));
+  try {
+    const channel = new BroadcastChannel("eldran-command-chat");
+    channel.postMessage(payload);
+    channel.close();
+  } catch {}
+  try {
+    window.localStorage.setItem("eldran-command-chat-updated", JSON.stringify(payload));
+  } catch {}
+}
+
 function initCommandChat({
   listElement,
   formElement,
@@ -267,6 +307,8 @@ function initCommandChat({
   let lastSignature = "";
   let previousMessageSignatures = new Set();
   let hasHydrated = false;
+  let latestLoadRequestId = 0;
+  let refreshTimerId = 0;
 
   function renderMessages(messages) {
     const messageSignatures = messages.map((message) => messageSignature(message));
@@ -292,12 +334,24 @@ function initCommandChat({
   }
 
   async function loadMessages() {
+    const requestId = latestLoadRequestId + 1;
+    latestLoadRequestId = requestId;
     const response = await fetch(`/api/command-chat?ts=${Date.now()}`, { cache: "no-store" });
     const data = await response.json();
     if (!response.ok) {
       throw new Error(data.detail || "Befehls-Chat konnte nicht geladen werden.");
     }
+    if (requestId !== latestLoadRequestId) {
+      return;
+    }
     renderMessages(data.messages || []);
+  }
+
+  function scheduleLoadMessages() {
+    window.clearTimeout(refreshTimerId);
+    refreshTimerId = window.setTimeout(() => {
+      loadMessages().catch(() => {});
+    }, 0);
   }
 
   async function sendMessage(message) {
@@ -311,6 +365,7 @@ function initCommandChat({
       throw new Error(data.detail || "Befehl konnte nicht gesendet werden.");
     }
     await loadMessages();
+    notifyCommandChatUpdated({ source: "composer", messages: data.messages || [] });
   }
 
   async function clearMessages() {
@@ -332,7 +387,21 @@ function initCommandChat({
     }
     listElement.innerHTML = "";
     await loadMessages();
+    notifyCommandChatUpdated({ source: "clear" });
   }
+
+  window.addEventListener("eldran:command-chat-updated", scheduleLoadMessages);
+  try {
+    const channel = new BroadcastChannel("eldran-command-chat");
+    channel.addEventListener("message", scheduleLoadMessages);
+    window.__eldranCommandChatChannels = window.__eldranCommandChatChannels || [];
+    window.__eldranCommandChatChannels.push(channel);
+  } catch {}
+  window.addEventListener("storage", (event) => {
+    if (event.key === "eldran-command-chat-updated") {
+      scheduleLoadMessages();
+    }
+  });
 
   formElement.addEventListener("submit", async (event) => {
     event.preventDefault();

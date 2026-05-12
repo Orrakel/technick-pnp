@@ -30,6 +30,8 @@ const battlemapTokenAttackInput = document.getElementById("battlemapTokenAttackI
 const battlemapTokenVisionInput = document.getElementById("battlemapTokenVisionInput");
 const battlemapTokenAssignedUserInput = document.getElementById("battlemapTokenAssignedUserInput");
 const battlemapTokenInitiativeInput = document.getElementById("battlemapTokenInitiativeInput");
+const battlemapTokenHpCurrentInput = document.getElementById("battlemapTokenHpCurrentInput");
+const battlemapTokenHpMaxInput = document.getElementById("battlemapTokenHpMaxInput");
 const battlemapTokenLayerInput = document.getElementById("battlemapTokenLayerInput");
 const battlemapAddTokenButton = document.getElementById("battlemapAddTokenButton");
 const battlemapTokenStatus = document.getElementById("battlemapTokenStatus");
@@ -43,6 +45,8 @@ const battlemapSelectedTokenAttackInput = document.getElementById("battlemapSele
 const battlemapSelectedTokenVisionInput = document.getElementById("battlemapSelectedTokenVisionInput");
 const battlemapSelectedTokenAssignedUserInput = document.getElementById("battlemapSelectedTokenAssignedUserInput");
 const battlemapSelectedTokenInitiativeInput = document.getElementById("battlemapSelectedTokenInitiativeInput");
+const battlemapSelectedTokenHpCurrentInput = document.getElementById("battlemapSelectedTokenHpCurrentInput");
+const battlemapSelectedTokenHpMaxInput = document.getElementById("battlemapSelectedTokenHpMaxInput");
 const battlemapSelectedTokenImageInput = document.getElementById("battlemapSelectedTokenImageInput");
 const battlemapSelectedTokenSaveButton = document.getElementById("battlemapSelectedTokenSaveButton");
 const battlemapSelectedTokenMoveToggle = document.getElementById("battlemapSelectedTokenMoveToggle");
@@ -56,7 +60,6 @@ const battlemapSidebarTurnOrderSummary = document.getElementById("battlemapSideb
 const battlemapFogToggle = document.getElementById("battlemapFogToggle");
 const battlemapWallModeToggle = document.getElementById("battlemapWallModeToggle");
 const battlemapDoorModeToggle = document.getElementById("battlemapDoorModeToggle");
-const battlemapFogDeleteLastButton = document.getElementById("battlemapFogDeleteLastButton");
 const battlemapObstacleToggle = document.getElementById("battlemapObstacleToggle");
 const battlemapBackButton = document.getElementById("battlemapBackButton");
 const battlemapMusicAudio = document.getElementById("battlemapMusicAudio");
@@ -75,7 +78,6 @@ const battlemapCommandChatInput = document.getElementById("battlemapCommandChatI
 const battlemapCommandChatStatus = document.getElementById("battlemapCommandChatStatus");
 const battlemapCommandChatClearButton = document.getElementById("battlemapCommandChatClearButton");
 const battlemapObstacleClearButton = document.getElementById("battlemapObstacleClearButton");
-const battlemapSelectionClearButton = document.getElementById("battlemapSelectionClearButton");
 const battlemapUseActionButton = document.getElementById("battlemapUseActionButton");
 const battlemapZoomInput = document.getElementById("battlemapZoomInput");
 const battlemapZoomValue = document.getElementById("battlemapZoomValue");
@@ -141,8 +143,11 @@ function followSurfaceState(activeSurface) {
 function syncBattlemapAccessMode() {
   const manage = canManageBattlemap();
   battlemapAppShell?.classList.toggle("battlemap-player-view", !manage);
+  if (manage) {
+    battlemapAppShell?.classList.remove("sidebar-right-hidden", "sidebar-right-empty", "sidebar-right-collapsed");
+  }
   if (battlemapSidebarTurnOrderPanel) {
-    battlemapSidebarTurnOrderPanel.hidden = manage;
+    battlemapSidebarTurnOrderPanel.hidden = false;
   }
   const brand = battlemapSidebar?.querySelector(".brand");
   if (brand) {
@@ -163,7 +168,6 @@ function syncBattlemapAccessMode() {
   battlemapFogToggle.hidden = !manage;
   battlemapWallModeToggle.hidden = !manage;
   battlemapDoorModeToggle.hidden = !manage;
-  battlemapFogDeleteLastButton.hidden = !manage;
   battlemapObstacleToggle.hidden = !manage;
   battlemapObstacleClearButton.hidden = !manage;
   battlemapUseActionButton.hidden = !manage;
@@ -257,7 +261,7 @@ function applyObstacleColorPreview(color) {
 }
 
 function clampBattlemapVisionRange(value) {
-  return Math.min(Math.max(Number(value || 6), 1), 24);
+  return Math.min(Math.max(Number(value ?? 6), 0), 24);
 }
 
 function tokenAssignedToCurrentUser(token) {
@@ -272,6 +276,34 @@ function tokenAssignedToCurrentUser(token) {
     return true;
   }
   return false;
+}
+
+function canCurrentUserSeeTokenHealth(token) {
+  return canManageBattlemap() || tokenAssignedToCurrentUser(token);
+}
+
+function tokenHealth(token) {
+  const max = Math.max(0, Number(token?.hp_max || 0));
+  if (!max) {
+    return null;
+  }
+  const current = Math.min(Math.max(0, Number(token?.hp_current || 0)), max);
+  return {
+    current,
+    max,
+    percent: Math.round((current / max) * 100),
+  };
+}
+
+function healthPayloadFromInputs(currentInput, maxInput) {
+  const maxRaw = String(maxInput?.value || "").trim();
+  const currentRaw = String(currentInput?.value || "").trim();
+  const max = maxRaw === "" ? null : Number(maxRaw);
+  const current = currentRaw === "" ? max : Number(currentRaw);
+  return {
+    hp_current: Number.isFinite(current) ? Math.max(0, Math.round(current)) : null,
+    hp_max: Number.isFinite(max) ? Math.max(0, Math.round(max)) : null,
+  };
 }
 
 function activeFogBlockers() {
@@ -384,7 +416,7 @@ function castBattlemapVisibilityRay(origin, angle, maxDistance, segments) {
 }
 
 function getBattlemapVisibilityPolygon(token) {
-  const radius = clampBattlemapVisionRange(token?.vision_range || 6);
+  const radius = clampBattlemapVisionRange(token?.vision_range ?? 6);
   const origin = {
     x: Number(token.x || 0) + 0.5,
     y: Number(token.y || 0) + 0.5,
@@ -553,7 +585,7 @@ function suspendBattlemapRefresh(ms = 2500) {
 }
 
 function populateBattlemapAssignedUserSelects() {
-  const options = [{ id: "", username: "Nicht zugewiesen" }, ...battlemapAssignableUsers];
+  const options = [{ id: "", username: "Nicht zugewiesen", role: "" }, ...battlemapAssignableUsers];
   for (const select of [battlemapTokenAssignedUserInput, battlemapSelectedTokenAssignedUserInput]) {
     if (!select) {
       continue;
@@ -563,7 +595,11 @@ function populateBattlemapAssignedUserSelects() {
     for (const option of options) {
       const element = document.createElement("option");
       element.value = option.id;
-      element.textContent = option.username;
+      element.textContent = option.role === "npc"
+        ? `${option.username} (NPC)`
+        : option.role === "gegner"
+          ? `${option.username} (Gegner)`
+          : option.username;
       select.appendChild(element);
     }
     select.value = options.some((option) => option.id === previousValue) ? previousValue : "";
@@ -576,7 +612,7 @@ async function loadBattlemapAssignableUsers() {
     populateBattlemapAssignedUserSelects();
     return;
   }
-  const response = await fetch("/api/map-token-users", { cache: "no-store" });
+  const response = await fetch("/api/map-token-users?include_npcs=true", { cache: "no-store" });
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.detail || "Spielerliste konnte nicht geladen werden.");
@@ -648,6 +684,10 @@ function fillSelectedTokenForm() {
     battlemapSelectedTokenVisionInput.value = "6";
     battlemapSelectedTokenAssignedUserInput.value = "";
     battlemapSelectedTokenInitiativeInput.value = "10";
+    battlemapSelectedTokenHpCurrentInput.value = "";
+    battlemapSelectedTokenHpMaxInput.value = "";
+    battlemapSelectedTokenHpCurrentInput.disabled = true;
+    battlemapSelectedTokenHpMaxInput.disabled = true;
     battlemapSelectedTokenImageInput.value = "";
     battlemapSelectedTokenImageInput.disabled = true;
     battlemapSelectedTokenSaveButton.disabled = true;
@@ -655,6 +695,7 @@ function fillSelectedTokenForm() {
     battlemapSelectedTokenMoveToggle.disabled = true;
     battlemapSelectedTokenMoveToggle.textContent = "Freies Verschieben aus";
     setSelectedTokenStatus("Noch kein Token ausgewaehlt.");
+    syncTokenHealthInputs();
     return;
   }
   battlemapSelectedTokenNameInput.value = token.name;
@@ -667,12 +708,19 @@ function fillSelectedTokenForm() {
   battlemapSelectedTokenVisionInput.value = String(clampBattlemapVisionRange(token.vision_range));
   battlemapSelectedTokenAssignedUserInput.value = String(token.assigned_user_id || "");
   battlemapSelectedTokenInitiativeInput.value = String(token.initiative);
+  const health = tokenHealth(token);
+  battlemapSelectedTokenHpCurrentInput.value = health ? String(health.current) : "";
+  battlemapSelectedTokenHpMaxInput.value = health ? String(health.max) : "";
+  const manualHealth = token.type === "enemy";
+  battlemapSelectedTokenHpCurrentInput.disabled = !manualHealth;
+  battlemapSelectedTokenHpMaxInput.disabled = !manualHealth;
   battlemapSelectedTokenImageInput.disabled = false;
   battlemapSelectedTokenSaveButton.disabled = false;
   battlemapSelectedTokenDeleteButton.disabled = false;
   battlemapSelectedTokenMoveToggle.disabled = false;
   battlemapSelectedTokenMoveToggle.textContent = tokenFreeMoveEnabled ? "Freies Verschieben an" : "Freies Verschieben aus";
   setSelectedTokenStatus(token.image_url ? "Token mit Bild ausgewaehlt." : "Token ausgewaehlt.");
+  syncTokenHealthInputs();
 }
 
 function sleep(ms) {
@@ -688,6 +736,19 @@ function syncTokenColorWithType() {
   if (battlemapTokenTypeInput.value === "player" && battlemapTokenColorInput.value.toLowerCase() === "#ff6b6b") {
     battlemapTokenColorInput.value = "#58c4ff";
   }
+}
+
+function syncTokenHealthInputs() {
+  const createEnemy = battlemapTokenTypeInput.value === "enemy";
+  battlemapTokenHpCurrentInput.disabled = !createEnemy;
+  battlemapTokenHpMaxInput.disabled = !createEnemy;
+  if (!createEnemy) {
+    battlemapTokenHpCurrentInput.value = "";
+    battlemapTokenHpMaxInput.value = "";
+  }
+  const selectedEnemy = battlemapSelectedTokenTypeInput.value === "enemy";
+  battlemapSelectedTokenHpCurrentInput.disabled = !selectedEnemy;
+  battlemapSelectedTokenHpMaxInput.disabled = !selectedEnemy;
 }
 
 function battlemapCellSize() {
@@ -871,7 +932,9 @@ function updateSelectionInfo() {
     return;
   }
   const active = isActiveToken(token);
-  battlemapSelectionInfo.textContent = `${token.name}: Ini ${token.initiative}, Schritte ${remainingSteps(token)}/${token.move_range}, Angriff ${token.attack_range}, Zug ${token.action_used ? "beendet" : "offen"}${tokenFreeMoveEnabled ? ", freies Verschieben" : ""}${active ? ", am Zug" : ""}`;
+  const health = canCurrentUserSeeTokenHealth(token) ? tokenHealth(token) : null;
+  const healthText = health ? `, Leben ${health.current}/${health.max}` : "";
+  battlemapSelectionInfo.textContent = `${token.name}: Ini ${token.initiative}, Schritte ${remainingSteps(token)}/${token.move_range}, Angriff ${token.attack_range}${healthText}, Zug ${token.action_used ? "beendet" : "offen"}${tokenFreeMoveEnabled ? ", freies Verschieben" : ""}${active ? ", am Zug" : ""}`;
   if (battlemapUseActionButton) {
     battlemapUseActionButton.disabled = !active || isAnimatingMovement;
   }
@@ -1255,8 +1318,23 @@ function renderGrid() {
     } else {
       button.classList.remove("has-image");
     }
+    const health = canCurrentUserSeeTokenHealth(token) ? tokenHealth(token) : null;
+    if (health) {
+      const healthBar = document.createElement("span");
+      healthBar.className = "battlemap-token-health";
+      if (health.percent <= 30) {
+        healthBar.classList.add("danger");
+      } else if (health.percent <= 60) {
+        healthBar.classList.add("warning");
+      }
+      const healthFill = document.createElement("span");
+      healthFill.style.width = `${health.percent}%`;
+      healthBar.appendChild(healthFill);
+      button.appendChild(healthBar);
+    }
     const assignedLabel = token.assigned_username ? ` | Spieler ${token.assigned_username}` : "";
-    button.title = `${token.name} (${tokenTypeLabel(token.type)}) | Ini ${token.initiative} | Schritte ${remainingSteps(token)}/${token.move_range} | Sicht ${clampBattlemapVisionRange(token.vision_range)}${assignedLabel} | Zug ${token.action_used ? "beendet" : "offen"}`;
+    const healthLabel = health ? ` | Leben ${health.current}/${health.max}` : "";
+    button.title = `${token.name} (${tokenTypeLabel(token.type)}) | Ini ${token.initiative} | Schritte ${remainingSteps(token)}/${token.move_range} | Sicht ${clampBattlemapVisionRange(token.vision_range)}${healthLabel}${assignedLabel} | Zug ${token.action_used ? "beendet" : "offen"}`;
     button.addEventListener("click", (event) => {
       hideBattlemapLayerMenu();
       event.stopPropagation();
@@ -1699,6 +1777,7 @@ async function addToken() {
   if (!currentBattlemap) {
     return;
   }
+  const health = healthPayloadFromInputs(battlemapTokenHpCurrentInput, battlemapTokenHpMaxInput);
   const response = await fetch(`/api/battlemaps/${currentBattlemap.id}/tokens`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1712,6 +1791,8 @@ async function addToken() {
       move_range: Number(battlemapTokenMoveInput.value || 4),
       attack_range: Number(battlemapTokenAttackInput.value || 1),
       vision_range: clampBattlemapVisionRange(battlemapTokenVisionInput?.value || 6),
+      hp_current: health.hp_current,
+      hp_max: health.hp_max,
       assigned_user_id: String(battlemapTokenAssignedUserInput?.value || ""),
       visibility_layer: battlemapTokenLayerInput?.checked ? "gm" : "public",
     }),
@@ -1721,6 +1802,8 @@ async function addToken() {
     throw new Error(data.detail || "Token konnte nicht hinzugefuegt werden.");
   }
   battlemapTokenNameInput.value = "";
+  battlemapTokenHpCurrentInput.value = "";
+  battlemapTokenHpMaxInput.value = "";
   if (battlemapTokenLayerInput) {
     battlemapTokenLayerInput.checked = false;
   }
@@ -1736,6 +1819,7 @@ async function saveSelectedToken() {
     return;
   }
   suspendBattlemapRefresh();
+  const health = healthPayloadFromInputs(battlemapSelectedTokenHpCurrentInput, battlemapSelectedTokenHpMaxInput);
   const response = await fetch(`/api/battlemaps/${currentBattlemap.id}/tokens/${selectedTokenId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -1748,6 +1832,8 @@ async function saveSelectedToken() {
       move_range: Number(battlemapSelectedTokenMoveInput.value || 4),
       attack_range: Number(battlemapSelectedTokenAttackInput.value || 1),
       vision_range: clampBattlemapVisionRange(battlemapSelectedTokenVisionInput?.value || 6),
+      hp_current: health.hp_current,
+      hp_max: health.hp_max,
       assigned_user_id: String(battlemapSelectedTokenAssignedUserInput?.value || ""),
       initiative: Number(battlemapSelectedTokenInitiativeInput.value || 10),
       ignore_turn_rules: true,
@@ -2012,22 +2098,6 @@ battlemapDoorModeToggle.addEventListener("click", () => {
   updateFogToolbar();
 });
 
-battlemapFogDeleteLastButton.addEventListener("click", async () => {
-  if (!currentBattlemap) {
-    return;
-  }
-  battlemapFogDeleteLastButton.disabled = true;
-  try {
-    await deleteLastBattlemapFogElement(fogEditMode);
-    setBattlemapStatus("Letztes Fog-Element geloescht.");
-  } catch (error) {
-    setBattlemapStatus(error.message);
-  } finally {
-    battlemapFogDeleteLastButton.disabled = false;
-    updateFogToolbar();
-  }
-});
-
 battlemapObstacleToggle.addEventListener("click", () => {
   fogEditMode = "";
   obstacleEditEnabled = !obstacleEditEnabled;
@@ -2045,10 +2115,6 @@ battlemapObstacleClearButton.addEventListener("click", async () => {
   } catch (error) {
     setBattlemapStatus(error.message);
   }
-});
-
-battlemapSelectionClearButton.addEventListener("click", () => {
-  clearSelection();
 });
 
 battlemapUseActionButton.addEventListener("click", async () => {
@@ -2079,7 +2145,11 @@ battlemapBackButton.addEventListener("click", () => {
     });
 });
 
-battlemapTokenTypeInput.addEventListener("change", syncTokenColorWithType);
+battlemapTokenTypeInput.addEventListener("change", () => {
+  syncTokenColorWithType();
+  syncTokenHealthInputs();
+});
+battlemapSelectedTokenTypeInput.addEventListener("change", syncTokenHealthInputs);
 
 if (battlemapObstacleColorInput) {
   battlemapObstacleColorInput.addEventListener("input", () => {
@@ -2227,6 +2297,7 @@ initializeAuthUi({ required: false })
     syncBattlemapAccessMode();
     initializeBattlemapSections();
     syncTokenColorWithType();
+    syncTokenHealthInputs();
     resetView();
     await loadBattlemaps();
     setInterval(() => {

@@ -167,13 +167,17 @@ function renderTokenUserOptions(selectElement, includeEmpty = true) {
   if (includeEmpty) {
     const emptyOption = document.createElement("option");
     emptyOption.value = "";
-    emptyOption.textContent = "Kein Spieler";
+    emptyOption.textContent = "Nicht zugewiesen";
     selectElement.appendChild(emptyOption);
   }
   for (const user of currentTokenUsers) {
     const option = document.createElement("option");
     option.value = user.id;
-    option.textContent = user.username;
+    option.textContent = user.role === "npc"
+      ? `${user.username} (NPC)`
+      : user.role === "gegner"
+        ? `${user.username} (Gegner)`
+        : user.username;
     selectElement.appendChild(option);
   }
 }
@@ -185,7 +189,7 @@ async function loadTokenUsers() {
     renderTokenUserOptions(mapPinDetailAssignedUser, true);
     return;
   }
-  const response = await fetch("/api/map-token-users", { cache: "no-store" });
+  const response = await fetch("/api/map-token-users?include_npcs=true", { cache: "no-store" });
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.detail || "Spieler fuer Tokens konnten nicht geladen werden.");

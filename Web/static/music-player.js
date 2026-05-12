@@ -18,6 +18,8 @@ function initSharedMusicPlayer({
     return;
   }
 
+  audioElement.loop = true;
+
   let currentUpdatedAt = "";
   let currentFileName = "";
   let currentTrackId = "";
@@ -135,13 +137,26 @@ function initSharedMusicPlayer({
     return Math.max(base + ((Date.now() - startedAt) / 1000), 0);
   }
 
+  function normalizePlaybackPosition(positionSeconds) {
+    const numeric = Number(positionSeconds);
+    const safePosition = Math.max(Number.isFinite(numeric) ? numeric : 0, 0);
+    const duration = Number(audioElement.duration || 0);
+    if (!audioElement.loop || !Number.isFinite(duration) || duration <= 0) {
+      return safePosition;
+    }
+    if (safePosition <= duration) {
+      return safePosition;
+    }
+    return safePosition % duration;
+  }
+
   async function setAudioPosition(positionSeconds) {
     if (!Number.isFinite(positionSeconds)) {
       return;
     }
     if (audioElement.readyState >= 1) {
       try {
-        audioElement.currentTime = Math.max(positionSeconds, 0);
+        audioElement.currentTime = normalizePlaybackPosition(positionSeconds);
       } catch {}
       return;
     }
@@ -153,7 +168,7 @@ function initSharedMusicPlayer({
       audioElement.addEventListener("loadedmetadata", onLoadedMetadata, { once: true });
     });
     try {
-      audioElement.currentTime = Math.max(positionSeconds, 0);
+      audioElement.currentTime = normalizePlaybackPosition(positionSeconds);
     } catch {}
   }
 
@@ -186,7 +201,7 @@ function initSharedMusicPlayer({
         audioElement.load();
       }
 
-      const targetPosition = computeTargetPosition(state);
+      const targetPosition = normalizePlaybackPosition(computeTargetPosition(state));
       const shouldResyncPosition = fileChanged || Math.abs((audioElement.currentTime || 0) - targetPosition) > 1.5;
       if (shouldResyncPosition) {
         await setAudioPosition(targetPosition);

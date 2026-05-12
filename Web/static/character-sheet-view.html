@@ -1,0 +1,37 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Charaktersheet</title>
+  <link rel="stylesheet" href="/static/style.css?v=57">
+</head>
+<body class="sheet-view-body">
+  <main class="sheet-view-shell">
+    <section id="sheetViewStatus" class="character-empty-state">
+      <h3>Charaktersheet wird geladen...</h3>
+      <p>Die separate Ansicht zeigt nur den Charakterbogen.</p>
+    </section>
+    <section id="sheetViewLayout" class="sheet-view-layout hidden">
+      <section id="sheetViewRoot" class="dnd-parsed-data"></section>
+      <aside class="sheet-notes-panel">
+        <div class="sheet-notes-header">
+          <h2>Notizen</h2>
+          <span id="sheetNotesStatus">Bereit</span>
+        </div>
+        <div class="sheet-notes-toolbar" aria-label="Notizformatierung">
+          <button type="button" data-note-command="bold" title="Fett"><strong>B</strong></button>
+          <button type="button" data-note-command="italic" title="Kursiv"><em>I</em></button>
+          <button type="button" data-note-command="underline" title="Unterstrichen"><u>U</u></button>
+          <button type="button" data-note-command="insertUnorderedList" title="Liste">•</button>
+          <button type="button" data-note-command="removeFormat" title="Format entfernen">Tx</button>
+        </div>
+        <div id="sheetNotesEditor" class="sheet-notes-editor" contenteditable="true" aria-label="Notizen"></div>
+      </aside>
+    </section>
+  </main>
+  <script src="/static/sheet-rolls.js?v=10" defer></script>
+  <script src="/static/character-sheet-view.js?v=24" defer></script>
+</body>
+</html>
+

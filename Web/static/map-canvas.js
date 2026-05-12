@@ -101,6 +101,7 @@ function initSharedMapCanvas({
     canvasHeight: 0,
   };
   let strokes = [];
+  let selectedStrokeId = "";
   let pings = [];
   let pins = [];
   let overlays = [];
@@ -135,6 +136,8 @@ function initSharedMapCanvas({
   let panOffsetX = 0;
   let panOffsetY = 0;
   let panState = null;
+  let touchPanState = null;
+  let suppressMapClickUntil = 0;
   let lastMapInteractionAt = 0;
   let hasInitializedView = false;
   let overlayLayerMenu = null;
@@ -300,7 +303,9 @@ function initSharedMapCanvas({
     activeImageUrl = "";
     currentSurfaceMeta = { backgroundColor: "#223044", canvasWidth: 0, canvasHeight: 0 };
     hasInitializedView = false;
+    setFogImageLoadSecured(!isCurrentUserGameMaster());
     strokes = [];
+    selectedStrokeId = "";
     pings = [];
     pins = [];
     overlays = [];
@@ -630,20 +635,30 @@ function initSharedMapCanvas({
     if (!input || !valueElement) {
       return;
     }
-    valueElement.textContent = `${Math.round(Number(input.value || 18))} %`;
+    valueElement.textContent = `${Math.round(Number(input.value || 0))} %`;
   }
 
   function visionPercentToRadius(value) {
-    const numericValue = Number(value || 18);
-    return Math.min(Math.max(numericValue / 100, 0.05), 0.6);
+    const numericValue = Number(value ?? 18);
+    return Math.min(Math.max(numericValue / 100, 0), 0.6);
   }
 
   function radiusToVisionPercent(value) {
-    return Math.round(Math.min(Math.max(Number(value || 0.18) * 100, 5), 60));
+    return Math.round(Math.min(Math.max(Number(value ?? 0.18) * 100, 0), 60));
   }
 
   function canManageFog() {
     return Boolean(fogEnabledInput || fogWallModeButton || fogDeleteWallButton || fogClearExploredButton);
+  }
+
+  function shouldSecureFogImageLoad() {
+    return Boolean(fogState.enabled && !isCurrentUserGameMaster());
+  }
+
+  function setFogImageLoadSecured(secured) {
+    const enabled = Boolean(secured);
+    stageElement.classList.toggle("fog-secured-loading", enabled);
+    document.body?.classList.toggle("map-fog-guard", enabled);
   }
 
   function getFogScope() {
@@ -746,7 +761,7 @@ function initSharedMapCanvas({
   }
 
   function getTokenVisibilityPolygon(token) {
-    const radius = Math.min(Math.max(Number(token.vision_radius || 0.18), 0.05), 0.6);
+    const radius = Math.min(Math.max(Number(token.vision_radius ?? 0.18), 0), 0.6);
     const origin = { x: Number(token.x || 0), y: Number(token.y || 0) };
     const walls = getFogWallsWithBounds();
     const angles = [];
@@ -816,7 +831,7 @@ function initSharedMapCanvas({
       return;
     }
     for (const token of tokens) {
-      const coreRadius = Math.min(Math.max(Number(token.vision_radius || 0.18) * 0.22, 0.018), 0.05);
+      const coreRadius = Math.min(Math.max(Number(token.vision_radius ?? 0.18) * 0.22, 0), 0.05);
       context.beginPath();
       context.arc(Number(token.x || 0) * width, Number(token.y || 0) * height, coreRadius * Math.max(width, height), 0, Math.PI * 2);
       context.fill();
@@ -912,7 +927,7 @@ function initSharedMapCanvas({
       .map((pin) => ({
         x: Number(pin.x || 0),
         y: Number(pin.y || 0),
-        radius: Math.min(Math.max(Number(pin.vision_radius || 0.18), 0.05), 0.6),
+        radius: Math.min(Math.max(Number(pin.vision_radius ?? 0.18), 0), 0.6),
       }));
   }
 
@@ -949,6 +964,37 @@ function initSharedMapCanvas({
     context.moveTo(firstX, firstY);
     for (const point of points.slice(1)) {
       context.lineTo(point.x * width, point.y * height);
+    }
+    context.stroke();
+    context.restore();
+  }
+
+  function drawSelectedStroke(stroke) {
+    const points = Array.isArray(stroke?.points) ? stroke.points : [];
+    if (!points.length) {
+      return;
+    }
+    const width = canvasElement.width || 0;
+    const height = canvasElement.height || 0;
+    if (!width || !height) {
+      return;
+    }
+
+    context.save();
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.strokeStyle = "rgba(255, 236, 132, 0.95)";
+    context.lineWidth = Math.max((Number(stroke.width) || 3) + 8, 10);
+    context.setLineDash([12, 7]);
+    const firstPoint = points[0];
+    context.beginPath();
+    context.moveTo(firstPoint.x * width, firstPoint.y * height);
+    if (points.length === 1) {
+      context.arc(firstPoint.x * width, firstPoint.y * height, Math.max(context.lineWidth / 2, 6), 0, Math.PI * 2);
+    } else {
+      for (const point of points.slice(1)) {
+        context.lineTo(point.x * width, point.y * height);
+      }
     }
     context.stroke();
     context.restore();
@@ -1012,6 +1058,10 @@ function initSharedMapCanvas({
     drawFogVisibility();
     for (const stroke of strokes) {
       drawStroke(stroke);
+    }
+    const selectedStroke = strokes.find((stroke) => stroke.id === selectedStrokeId);
+    if (selectedStroke) {
+      drawSelectedStroke(selectedStroke);
     }
     if (pendingPoints.length) {
       drawStroke({ color: currentDrawColor, width: currentDrawWidth, points: pendingPoints });
@@ -1622,6 +1672,7 @@ function initSharedMapCanvas({
       currentImageVersion = "";
       activeImageUrl = "";
       currentSurfaceMeta = { backgroundColor: "#223044", canvasWidth: 0, canvasHeight: 0 };
+      setFogImageLoadSecured(false);
       imageElement.removeAttribute("src");
       imageElement.classList.add("hidden");
       stageElement.classList.add("hidden");
@@ -1641,9 +1692,11 @@ function initSharedMapCanvas({
     activeImageUrl = image.url || "";
     stageElement.style.backgroundColor = currentSurfaceMeta.backgroundColor;
     if (activeImageUrl) {
+      setFogImageLoadSecured(shouldSecureFogImageLoad());
       imageElement.classList.remove("hidden");
       imageElement.src = activeImageUrl;
     } else {
+      setFogImageLoadSecured(false);
       imageElement.removeAttribute("src");
       imageElement.classList.add("hidden");
       resizeStageSurface(currentSurfaceMeta.canvasWidth, currentSurfaceMeta.canvasHeight);
@@ -1718,6 +1771,9 @@ function initSharedMapCanvas({
 
     currentDrawingVersion = nextVersion;
     strokes = data.strokes || [];
+    if (selectedStrokeId && !strokes.some((stroke) => stroke.id === selectedStrokeId)) {
+      selectedStrokeId = "";
+    }
     renderFrame();
   }
 
@@ -2602,7 +2658,24 @@ function initSharedMapCanvas({
 
     currentDrawingVersion = "";
     strokes = [];
+    selectedStrokeId = "";
     renderFrame();
+    await loadDrawings();
+  }
+
+  async function removeStroke(strokeId) {
+    if (!strokeId) {
+      return;
+    }
+    const response = await fetch(`/api/map-drawings/${encodeURIComponent(strokeId)}`, {
+      method: "DELETE",
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || "Strich konnte nicht geloescht werden.");
+    }
+    currentDrawingVersion = "";
+    selectedStrokeId = "";
     await loadDrawings();
   }
 
@@ -2733,6 +2806,50 @@ function initSharedMapCanvas({
     return Math.sqrt((px * px) + (py * py));
   }
 
+  function pointToStrokeDistance(point, stroke) {
+    const points = Array.isArray(stroke?.points) ? stroke.points : [];
+    if (!point || !points.length) {
+      return Number.POSITIVE_INFINITY;
+    }
+    if (points.length === 1) {
+      const dx = point.x - Number(points[0].x || 0);
+      const dy = point.y - Number(points[0].y || 0);
+      return Math.sqrt((dx * dx) + (dy * dy));
+    }
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    for (let index = 1; index < points.length; index += 1) {
+      nearestDistance = Math.min(
+        nearestDistance,
+        pointToSegmentDistance(point, {
+          x1: points[index - 1].x,
+          y1: points[index - 1].y,
+          x2: points[index].x,
+          y2: points[index].y,
+        }),
+      );
+    }
+    return nearestDistance;
+  }
+
+  function findStrokeAtPoint(point) {
+    if (!point) {
+      return null;
+    }
+    const canvasShortSide = Math.max(Math.min(canvasElement.width || 0, canvasElement.height || 0), 1);
+    let nearest = null;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    for (const stroke of [...strokes].reverse()) {
+      const strokeWidth = Number(stroke.width || 3);
+      const threshold = Math.max((strokeWidth + 8) / canvasShortSide, 0.006);
+      const distance = pointToStrokeDistance(point, stroke);
+      if (distance <= threshold && distance < nearestDistance) {
+        nearest = stroke;
+        nearestDistance = distance;
+      }
+    }
+    return nearest;
+  }
+
   function findFogElementAtPoint(point) {
     if (!point || !canManageFog()) {
       return null;
@@ -2769,6 +2886,10 @@ function initSharedMapCanvas({
       return;
     }
 
+    if (event.pointerType !== "mouse" && !isAnyToolArmed()) {
+      return;
+    }
+
     focusCanvas();
     const point = pointerPoint(event);
     if (!point) {
@@ -2794,15 +2915,28 @@ function initSharedMapCanvas({
           .then(() => setStatus(door.is_open ? "Tuer geschlossen." : "Tuer geoeffnet."))
           .catch((error) => setStatus(error.message));
       } else {
-        setStatus("Wand ausgewaehlt. Mit Auswahl loeschen entfernen.");
+        setStatus("Wand ausgewaehlt. Mit Delete entfernen.");
       }
       updateFogControls();
       renderFrame();
       return;
     }
 
+    const stroke = findStrokeAtPoint(point);
+    if (stroke) {
+      event.preventDefault();
+      event.stopPropagation();
+      selectedStrokeId = stroke.id;
+      hidePinDetails();
+      clearActiveOverlay();
+      setStatus("Strich ausgewaehlt. Mit Delete loeschen.");
+      renderFrame();
+      return;
+    }
+
     hidePinDetails();
     clearActiveOverlay();
+    selectedStrokeId = "";
     isPointerDown = true;
     isDrawing = false;
     pendingPointerId = event.pointerId;
@@ -2953,10 +3087,12 @@ function initSharedMapCanvas({
 
   imageElement.addEventListener("load", () => {
     resizeStageToImage();
+    setFogImageLoadSecured(false);
     setStatus("Karte geladen");
   });
 
   imageElement.addEventListener("error", () => {
+    setFogImageLoadSecured(false);
     setStatus("Bild konnte nicht geladen werden.");
   });
 
@@ -3335,12 +3471,16 @@ function initSharedMapCanvas({
   window.addEventListener("eldran:map-selection-changed", () => {
     const currentMapId = typeof getCurrentMapId === "function" ? getCurrentMapId() : "";
     resetMapScopedState(currentMapId);
-    loadImageMeta().catch(() => {});
-    loadDrawings().catch(() => {});
-    loadPings().catch(() => {});
-    loadPins().catch(() => {});
-    loadOverlays().catch(() => {});
-    loadFogState().catch(() => {});
+    (async () => {
+      await loadFogState().catch(() => {});
+      await loadImageMeta().catch(() => {});
+      await loadOverlays().catch(() => {});
+      await loadDrawings().catch(() => {});
+      await loadPings().catch(() => {});
+      if (!pinMoveState && !pinMovePersisting) {
+        await loadPins().catch(() => {});
+      }
+    })();
   });
   window.addEventListener("eldran:map-layer-changed", () => {
       currentImageVersion = "";
@@ -3352,12 +3492,17 @@ function initSharedMapCanvas({
       pendingWall = null;
       selectedFogElement = null;
       hoverPoint = null;
-      loadImageMeta().catch(() => {});
-      loadDrawings().catch(() => {});
-      loadPings().catch(() => {});
-      loadPins().catch(() => {});
-      loadOverlays().catch(() => {});
-      loadFogState().catch(() => {});
+      setFogImageLoadSecured(!isCurrentUserGameMaster());
+      (async () => {
+        await loadFogState().catch(() => {});
+        await loadImageMeta().catch(() => {});
+        await loadOverlays().catch(() => {});
+        await loadDrawings().catch(() => {});
+        await loadPings().catch(() => {});
+        if (!pinMoveState && !pinMovePersisting) {
+          await loadPins().catch(() => {});
+        }
+      })();
     });
   window.addEventListener("eldran:map-gm-layer-changed", () => {
     currentPinVersion = "";
@@ -3414,6 +3559,19 @@ function initSharedMapCanvas({
       try {
         setStatus("Auswahl wird geloescht...");
         await deleteFogElement(selectedFogElement);
+        setStatus("Bereit");
+      } catch (error) {
+        setStatus(error.message);
+      }
+      return;
+    }
+
+    if (event.key === "Delete" && selectedStrokeId) {
+      event.preventDefault();
+      markMapInteraction();
+      try {
+        setStatus("Strich wird geloescht...");
+        await removeStroke(selectedStrokeId);
         setStatus("Bereit");
       } catch (error) {
         setStatus(error.message);
@@ -3516,6 +3674,81 @@ function initSharedMapCanvas({
       applyZoom();
     });
 
+    scrollContainerElement.addEventListener("pointerdown", (event) => {
+      if (!hasRenderableSurface() || event.pointerType === "mouse" || !event.isPrimary || isAnyToolArmed()) {
+        return;
+      }
+      focusCanvas();
+      touchPanState = {
+        pointerId: event.pointerId,
+        startTarget: event.target,
+        startPoint: pointerPoint(event),
+        startX: event.clientX,
+        startY: event.clientY,
+        offsetX: panOffsetX,
+        offsetY: panOffsetY,
+        moved: false,
+      };
+      scrollContainerElement.setPointerCapture(event.pointerId);
+    }, { passive: true });
+
+    scrollContainerElement.addEventListener("pointermove", (event) => {
+      if (!touchPanState || touchPanState.pointerId !== event.pointerId) {
+        return;
+      }
+      const dx = event.clientX - touchPanState.startX;
+      const dy = event.clientY - touchPanState.startY;
+      const distance = Math.sqrt((dx * dx) + (dy * dy));
+      if (!touchPanState.moved && distance < 8) {
+        return;
+      }
+      markMapInteraction();
+      event.preventDefault();
+      touchPanState.moved = true;
+      panOffsetX = touchPanState.offsetX + dx;
+      panOffsetY = touchPanState.offsetY + dy;
+      scrollContainerElement.classList.add("map-panning");
+      applyZoom();
+    }, { passive: false });
+
+    async function endTouchPan(event) {
+      if (!touchPanState || touchPanState.pointerId !== event.pointerId) {
+        return;
+      }
+      const finishedPan = touchPanState;
+      if (touchPanState.moved) {
+        event.preventDefault();
+        suppressMapClickUntil = Date.now() + 350;
+      }
+      try {
+        scrollContainerElement.releasePointerCapture(event.pointerId);
+      } catch {}
+      touchPanState = null;
+      scrollContainerElement.classList.remove("map-panning");
+      if (!finishedPan.moved && finishedPan.startTarget === canvasElement) {
+        const point = pointerPoint(event) || finishedPan.startPoint;
+        if (!point) {
+          return;
+        }
+        try {
+          setStatus("Ping wird gesetzt...");
+          await persistPing(point);
+          setStatus("Bereit");
+        } catch (error) {
+          setStatus(error.message);
+        }
+      }
+    }
+
+    scrollContainerElement.addEventListener("pointerup", endTouchPan, { passive: false });
+    scrollContainerElement.addEventListener("pointercancel", endTouchPan, { passive: false });
+    scrollContainerElement.addEventListener("click", (event) => {
+      if (Date.now() < suppressMapClickUntil) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }, true);
+
     function endPan() {
       if (!panState) {
         return;
@@ -3567,8 +3800,8 @@ function initSharedMapCanvas({
   }
 
   async function refresh() {
-    await loadImageMeta();
     await loadFogState();
+    await loadImageMeta();
     await loadOverlays();
     await loadDrawings();
     await loadPings();

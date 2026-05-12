@@ -48,6 +48,7 @@ const remoteMapFogEnabledWrap = document.getElementById("remoteMapFogEnabledWrap
 const remoteMapFogEnabledInput = document.getElementById("remoteMapFogEnabledInput");
 const remoteMapFogManagerWrap = document.getElementById("remoteMapFogManagerWrap");
 const remoteMapFogWallModeButton = document.getElementById("remoteMapFogWallModeButton");
+const remoteMapFogDoorModeButton = document.getElementById("remoteMapFogDoorModeButton");
 const remoteMapFogDeleteWallButton = document.getElementById("remoteMapFogDeleteWallButton");
 const remoteMapFogClearExploredButton = document.getElementById("remoteMapFogClearExploredButton");
 const remoteMapTitle = document.getElementById("remoteMapTitle");
@@ -169,13 +170,17 @@ function renderRemoteTokenUserOptions(selectElement, includeEmpty = true) {
   if (includeEmpty) {
     const emptyOption = document.createElement("option");
     emptyOption.value = "";
-    emptyOption.textContent = "Kein Spieler";
+    emptyOption.textContent = "Nicht zugewiesen";
     selectElement.appendChild(emptyOption);
   }
   for (const user of remoteTokenUsers) {
     const option = document.createElement("option");
     option.value = user.id;
-    option.textContent = user.username;
+    option.textContent = user.role === "npc"
+      ? `${user.username} (NPC)`
+      : user.role === "gegner"
+        ? `${user.username} (Gegner)`
+        : user.username;
     selectElement.appendChild(option);
   }
 }
@@ -187,7 +192,7 @@ async function loadRemoteTokenUsers() {
     renderRemoteTokenUserOptions(remoteMapPinDetailAssignedUser, true);
     return;
   }
-  const response = await fetch("/api/map-token-users", { cache: "no-store" });
+  const response = await fetch("/api/map-token-users?include_npcs=true", { cache: "no-store" });
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.detail || "Spieler fuer Tokens konnten nicht geladen werden.");
@@ -871,6 +876,7 @@ initializeAuthUi()
       fogStatusElement: remoteMapLayerStatus,
       fogEnabledInput: manageMap ? remoteMapFogEnabledInput : null,
       fogWallModeButton: manageMap ? remoteMapFogWallModeButton : null,
+      fogDoorModeButton: manageMap ? remoteMapFogDoorModeButton : null,
       fogDeleteWallButton: manageMap ? remoteMapFogDeleteWallButton : null,
       fogClearExploredButton: manageMap ? remoteMapFogClearExploredButton : null,
       getAvailableLinkTargets: () => ({ maps: currentMaps, battlemaps: currentBattlemaps }),

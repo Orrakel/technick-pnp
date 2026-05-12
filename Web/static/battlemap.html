@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Eldran Battlemap</title>
-  <link rel="stylesheet" href="/static/style.css?v=15">
+  <link rel="stylesheet" href="/static/style.css?v=44">
 </head>
 <body>
   <main id="battlemapAppShell" class="app-shell">
@@ -17,6 +17,7 @@
             <a class="nav-link active" data-gm-only data-surface-link="battlemap" href="/Battlemap">Battlemap</a>
             <a class="nav-link" data-nav-link="sheet" href="/Charakterbogen">Charakterbogen</a>
             <a class="nav-link" href="/wiki">Wiki</a>
+            <a class="nav-link hidden" data-admin-only href="/notizen">Notizen</a>
             <a class="nav-link hidden" data-admin-only href="/db">Datenbank</a>
           </nav>
           <div class="auth-strip burger-auth">
@@ -176,7 +177,7 @@
           </div>
           <label class="draw-control">
             <span class="file-meta">Sichtweite</span>
-            <input id="battlemapTokenVisionInput" class="sidebar-input" type="number" min="1" max="24" value="6">
+            <input id="battlemapTokenVisionInput" class="sidebar-input" type="number" min="0" max="24" value="6">
           </label>
           <label class="draw-control">
             <span class="file-meta">Spieler</span>
@@ -188,6 +189,16 @@
             <span class="file-meta">Initiative</span>
             <input id="battlemapTokenInitiativeInput" class="sidebar-input" type="number" min="0" max="99" value="10">
           </label>
+          <div class="battlemap-form-grid">
+            <label class="draw-control">
+              <span class="file-meta">Leben</span>
+              <input id="battlemapTokenHpCurrentInput" class="sidebar-input" type="number" min="0" max="9999" placeholder="aktuell">
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Max</span>
+              <input id="battlemapTokenHpMaxInput" class="sidebar-input" type="number" min="0" max="9999" placeholder="max">
+            </label>
+          </div>
           <label class="draw-control">
             <span class="file-meta">Direkt auf Spielleiter-Ebene</span>
             <input id="battlemapTokenLayerInput" type="checkbox">
@@ -239,7 +250,7 @@
           </div>
           <label class="draw-control">
             <span class="file-meta">Sichtweite</span>
-            <input id="battlemapSelectedTokenVisionInput" class="sidebar-input" type="number" min="1" max="24" value="6">
+            <input id="battlemapSelectedTokenVisionInput" class="sidebar-input" type="number" min="0" max="24" value="6">
           </label>
           <label class="draw-control">
             <span class="file-meta">Spieler</span>
@@ -251,6 +262,16 @@
             <span class="file-meta">Initiative</span>
             <input id="battlemapSelectedTokenInitiativeInput" class="sidebar-input" type="number" min="0" max="99" value="10">
           </label>
+          <div class="battlemap-form-grid">
+            <label class="draw-control">
+              <span class="file-meta">Leben</span>
+              <input id="battlemapSelectedTokenHpCurrentInput" class="sidebar-input" type="number" min="0" max="9999" placeholder="aktuell">
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Max</span>
+              <input id="battlemapSelectedTokenHpMaxInput" class="sidebar-input" type="number" min="0" max="9999" placeholder="max">
+            </label>
+          </div>
           <label class="draw-control">
             <span class="file-meta">Token-Bild</span>
             <input id="battlemapSelectedTokenImageInput" class="sidebar-input" type="file" accept="image/*">
@@ -263,7 +284,57 @@
           <p id="battlemapSelectedTokenStatus" class="upload-hint">Noch kein Token ausgewaehlt.</p>
         </div>
       </section>
-      <div class="panel-column battlemap-sidebar-panels" data-panel-column="left">
+    </aside>
+
+    <section class="chat-panel battlemap-panel">
+      <div class="map-sidebar-toggles">
+        <button class="ghost-button compact-button map-sidebar-toggle" data-sidebar-toggle="left" type="button" aria-label="Linke Seitenleiste ein- oder ausklappen"><<</button>
+        <button class="ghost-button compact-button map-sidebar-toggle" data-sidebar-toggle="right" type="button" aria-label="Rechte Seitenleiste ein- oder ausklappen">>></button>
+      </div>
+      <header class="chat-header">
+        <div>
+          <p class="eyebrow">Taktiktest</p>
+        </div>
+        <div class="battlemap-header-meta">
+          <div id="battlemapRoundBadge" class="status-badge">Runde 1</div>
+          <div id="battlemapTurnBadge" class="status-badge">Wartet auf Auswahl</div>
+          <div id="battlemapStatusBadge" class="status-badge">Bereit</div>
+        </div>
+      </header>
+
+      <div class="battlemap-toolbar">
+        <button id="battlemapBackButton" class="ghost-button compact-button" type="button">Kampf Beenden</button>
+        <button id="battlemapFogToggle" class="ghost-button compact-button" type="button">Nebel aus</button>
+        <button id="battlemapWallModeToggle" class="ghost-button compact-button" type="button">Waende setzen</button>
+        <button id="battlemapDoorModeToggle" class="ghost-button compact-button" type="button">Tueren setzen</button>
+        <button id="battlemapObstacleToggle" class="ghost-button compact-button" type="button">Hindernisse bearbeiten</button>
+        <button id="battlemapObstacleClearButton" class="ghost-button compact-button" type="button">Hindernisse leeren</button>
+        <button id="battlemapUseActionButton" class="ghost-button compact-button" type="button">Runde beenden</button>
+        <label class="draw-control battlemap-zoom-control">
+          <span class="file-meta">Zoom</span>
+          <input id="battlemapZoomInput" class="range-input" type="range" min="25" max="250" step="10" value="50">
+          <span id="battlemapZoomValue" class="file-meta">50 %</span>
+        </label>
+        <span id="battlemapFogInfo" class="file-meta">Nebel inaktiv.</span>
+        <span id="battlemapSelectionInfo" class="file-meta">Kein Token ausgewaehlt.</span>
+      </div>
+
+      <section class="chat-frame battlemap-frame">
+        <div id="battlemapScroller" class="battlemap-scroller">
+          <div id="battlemapStage" class="battlemap-stage">
+            <div id="battlemapBoard" class="battlemap-board">
+              <div id="battlemapBackground" class="battlemap-background"></div>
+              <div id="battlemapGrid" class="battlemap-grid"></div>
+              <div id="battlemapOverlay" class="battlemap-overlay"></div>
+              <div id="battlemapTokenLayer" class="battlemap-token-layer"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <aside id="battlemapRightSidebar" class="sidebar sidebar-right" data-panel-sidebar="right">
+      <div class="panel-column battlemap-sidebar-panels" data-panel-column="right">
         <section id="battlemapSidebarTurnOrderPanel" class="upload-panel battlemap-turn-order-sidebar workspace-panel" data-panel-id="turn-order">
           <div class="panel-header" data-panel-drag>
             <p class="eyebrow">Zugreihenfolge</p>
@@ -326,58 +397,13 @@
         </section>
       </div>
     </aside>
-
-    <section class="chat-panel battlemap-panel">
-      <header class="chat-header">
-        <div>
-          <p class="eyebrow">Taktiktest</p>
-        </div>
-        <div class="battlemap-header-meta">
-          <div id="battlemapRoundBadge" class="status-badge">Runde 1</div>
-          <div id="battlemapTurnBadge" class="status-badge">Wartet auf Auswahl</div>
-          <div id="battlemapStatusBadge" class="status-badge">Bereit</div>
-        </div>
-      </header>
-
-      <div class="battlemap-toolbar">
-        <button id="battlemapBackButton" class="ghost-button compact-button" type="button">Kampf Beenden</button>
-        <button id="battlemapFogToggle" class="ghost-button compact-button" type="button">Nebel aus</button>
-        <button id="battlemapWallModeToggle" class="ghost-button compact-button" type="button">Waende setzen</button>
-        <button id="battlemapDoorModeToggle" class="ghost-button compact-button" type="button">Tueren setzen</button>
-        <button id="battlemapFogDeleteLastButton" class="ghost-button compact-button" type="button">Letztes Element loeschen</button>
-        <button id="battlemapObstacleToggle" class="ghost-button compact-button" type="button">Hindernisse bearbeiten</button>
-        <button id="battlemapObstacleClearButton" class="ghost-button compact-button" type="button">Hindernisse leeren</button>
-        <button id="battlemapSelectionClearButton" class="ghost-button compact-button" type="button">Auswahl loeschen</button>
-        <button id="battlemapUseActionButton" class="ghost-button compact-button" type="button">Runde beenden</button>
-        <label class="draw-control battlemap-zoom-control">
-          <span class="file-meta">Zoom</span>
-          <input id="battlemapZoomInput" class="range-input" type="range" min="25" max="250" step="10" value="50">
-          <span id="battlemapZoomValue" class="file-meta">50 %</span>
-        </label>
-        <span id="battlemapFogInfo" class="file-meta">Nebel inaktiv.</span>
-        <span id="battlemapSelectionInfo" class="file-meta">Kein Token ausgewaehlt.</span>
-      </div>
-
-      <section class="chat-frame battlemap-frame">
-        <div id="battlemapScroller" class="battlemap-scroller">
-          <div id="battlemapStage" class="battlemap-stage">
-            <div id="battlemapBoard" class="battlemap-board">
-              <div id="battlemapBackground" class="battlemap-background"></div>
-              <div id="battlemapGrid" class="battlemap-grid"></div>
-              <div id="battlemapOverlay" class="battlemap-overlay"></div>
-              <div id="battlemapTokenLayer" class="battlemap-token-layer"></div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </section>
   </main>
 
-  <script src="/static/auth-ui.js?v=10" defer></script>
+  <script src="/static/auth-ui.js?v=25" defer></script>
   <script src="/static/project-selector.js?v=3" defer></script>
 <script src="/static/music-player.js?v=7" defer></script>
-  <script src="/static/command-chat.js?v=10" defer></script>
+  <script src="/static/command-chat.js?v=12" defer></script>
   <script src="/static/panel-layout.js?v=5" defer></script>
-  <script src="/static/battlemap.js?v=26" defer></script>
+  <script src="/static/battlemap.js?v=32" defer></script>
 </body>
 </html>

@@ -3,11 +3,25 @@ const authStatus = document.getElementById("authStatus");
 const AUTH_TOKEN_STORAGE_KEY = "eldran-auth-token";
 
 function getStoredAuthToken() {
-  return window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY) || "";
+  return window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY) || window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY) || "";
 }
 
 function setStoredAuthToken(token) {
   window.sessionStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+  window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+}
+
+function clearStoredAuthToken() {
+  window.sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+}
+
+function requestedTarget() {
+  const target = new URLSearchParams(window.location.search).get("next") || "";
+  if (!target.startsWith("/") || target.startsWith("//")) {
+    return "";
+  }
+  return target;
 }
 
 function isLocalHost() {
@@ -46,12 +60,12 @@ async function redirectIfAlreadyLoggedIn() {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) {
-    window.sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    clearStoredAuthToken();
     return;
   }
   const data = await response.json();
   const fallbackTarget = defaultTargetForUser(data.user);
-  window.location.href = data.redirect_to || fallbackTarget;
+  window.location.href = requestedTarget() || data.redirect_to || fallbackTarget;
 }
 
 loginForm.addEventListener("submit", async (event) => {
@@ -66,7 +80,7 @@ loginForm.addEventListener("submit", async (event) => {
       setStoredAuthToken(data.token);
     }
     const fallbackTarget = defaultTargetForUser(data.user);
-    window.location.href = data.redirect_to || fallbackTarget;
+    window.location.href = requestedTarget() || data.redirect_to || fallbackTarget;
   } catch (error) {
     authStatus.textContent = error.message;
   }

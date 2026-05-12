@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Eldran Karte</title>
-  <link rel="stylesheet" href="/static/style.css?v=15">
+  <link rel="stylesheet" href="/static/style.css?v=44">
 </head>
-<body>
+<body class="map-fog-guard">
   <main id="mapPanelBoard" class="app-shell">
     <aside class="sidebar" data-panel-sidebar="left">
       <details class="burger-menu">
@@ -17,6 +17,7 @@
             <a class="nav-link" data-gm-only data-surface-link="battlemap" href="/battlemap">Battlemap</a>
             <a class="nav-link" data-nav-link="sheet" href="/charakterbogen">Charakterbogen</a>
             <a class="nav-link" href="/wiki">Wiki</a>
+            <a class="nav-link hidden" data-admin-only href="/notizen">Notizen</a>
             <a class="nav-link hidden" data-admin-only href="/db">Datenbank</a>
           </nav>
           <div class="auth-strip burger-auth">
@@ -170,13 +171,12 @@
           <span class="file-meta">Nebel aktiv</span>
           <input id="mapFogEnabledInput" type="checkbox">
         </label>
-        <div id="mapFogManagerWrap" class="stack-actions horizontal-actions hidden">
+        <div id="mapFogManagerWrap" class="stack-actions map-fog-actions hidden">
           <button id="mapFogWallModeButton" class="ghost-button compact-button" type="button">Wandmodus</button>
           <button id="mapFogDoorModeButton" class="ghost-button compact-button" type="button">Tuermodus</button>
-          <button id="mapFogDeleteWallButton" class="ghost-button compact-button" type="button">Auswahl loeschen</button>
           <button id="mapFogClearExploredButton" class="ghost-button compact-button" type="button">Vision zuruecksetzen</button>
         </div>
-        <p id="mapLayerStatus" class="upload-hint">Die Ebenenauswahl gilt nur fuer diese Ansicht.</p>
+        <p id="mapLayerStatus" class="upload-hint hidden" aria-hidden="true">Die Ebenenauswahl gilt nur fuer diese Ansicht.</p>
       </div>
 
       <section id="mapFrame" class="chat-frame map-frame">
@@ -223,7 +223,7 @@
         </label>
         <label class="draw-control hidden" id="mapPinDetailVisionWrap">
           <span class="file-meta">Sichtweite</span>
-          <input id="mapPinDetailVisionInput" class="range-input" type="range" min="5" max="60" step="1" value="18">
+          <input id="mapPinDetailVisionInput" class="range-input" type="range" min="0" max="60" step="1" value="18">
           <span id="mapPinDetailVisionValue" class="file-meta">18 %</span>
         </label>
         <label class="draw-control hidden" id="mapPinDetailLinkedMapWrap">
@@ -306,7 +306,7 @@
             </label>
             <label class="draw-control">
               <span class="file-meta">Sichtweite</span>
-              <input id="mapTokenVisionInput" class="range-input" type="range" min="5" max="60" step="1" value="18">
+              <input id="mapTokenVisionInput" class="range-input" type="range" min="0" max="60" step="1" value="18">
               <span id="mapTokenVisionValue" class="file-meta">18 %</span>
             </label>
             <label class="draw-control">
@@ -393,12 +393,12 @@
     </aside>
   </main>
 
-  <script src="/static/auth-ui.js?v=10" defer></script>
-  <script src="/static/command-chat.js?v=10" defer></script>
+  <script src="/static/auth-ui.js?v=25" defer></script>
+  <script src="/static/command-chat.js?v=12" defer></script>
 <script src="/static/music-player.js?v=7" defer></script>
   <script src="/static/project-selector.js?v=4" defer></script>
   <script src="/static/panel-layout.js?v=5" defer></script>
-  <script src="/static/map-canvas.js?v=58" defer></script>
-  <script src="/static/map.js?v=39" defer></script>
+  <script src="/static/map-canvas.js?v=63" defer></script>
+  <script src="/static/map.js?v=41" defer></script>
 </body>
 </html>

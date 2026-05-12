@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Eldran Datenbank</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v=44">
 </head>
 <body>
   <main class="app-shell">
@@ -17,6 +17,8 @@
             <a class="nav-link" data-surface-link="battlemap" href="/battlemap">Battlemap</a>
             <a class="nav-link" data-nav-link="sheet" href="/charakterbogen">Charakterbogen</a>
             <a class="nav-link" href="/wiki">Wiki</a>
+            <a class="nav-link" data-admin-only href="/notizen">Notizen</a>
+            <a class="nav-link active" data-admin-only href="/db">Datenbank</a>
           </nav>
           <div class="auth-strip burger-auth">
             <span data-current-user class="file-meta"></span>
@@ -41,12 +43,18 @@
           <input id="userCreatePasswordConfirm" class="sidebar-input" type="password" placeholder="Passwort bestaetigen" required>
           <select id="userCreateRole" class="sidebar-input">
             <option value="spieler">spieler</option>
+            <option value="npc">npc</option>
+            <option value="gegner">gegner</option>
             <option value="spielleiter">spielleiter</option>
             <option value="admin">admin</option>
           </select>
           <button class="ghost-button compact-button" type="submit">Account anlegen</button>
         </form>
         <div id="userAdminList" class="user-admin-list"></div>
+      </section>
+      <section class="upload-panel">
+        <p class="eyebrow">Projekte</p>
+        <div id="projectAdminList" class="user-admin-list"></div>
       </section>
     </aside>
 
@@ -74,7 +82,7 @@
     </section>
   </main>
 
-  <script src="/static/auth-ui.js?v=10" defer></script>
-  <script src="/static/db.js?v=2" defer></script>
+  <script src="/static/auth-ui.js?v=25" defer></script>
+  <script src="/static/db.js?v=5" defer></script>
 </body>
 </html>

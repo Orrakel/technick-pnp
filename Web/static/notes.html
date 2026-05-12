@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eldran Notizen</title>
+  <link rel="stylesheet" href="/static/style.css?v=44">
+</head>
+<body>
+  <main class="app-shell notes-shell">
+    <aside class="sidebar">
+      <details class="burger-menu">
+        <summary class="burger-button" aria-label="Menue oeffnen"><span class="burger-icon" aria-hidden="true"></span></summary>
+        <div class="burger-menu-panel">
+          <nav class="top-nav burger-nav">
+            <a class="nav-link" data-surface-link="map" href="/karte">Karte</a>
+            <a class="nav-link" data-surface-link="battlemap" href="/battlemap">Battlemap</a>
+            <a class="nav-link" data-nav-link="sheet" href="/charakterbogen">Charakterbogen</a>
+            <a class="nav-link" href="/wiki">Wiki</a>
+            <a class="nav-link active" data-admin-only href="/notizen">Notizen</a>
+            <a class="nav-link" data-admin-only href="/db">Datenbank</a>
+          </nav>
+          <div class="auth-strip burger-auth">
+            <span data-current-user class="file-meta"></span>
+            <button data-logout-button class="ghost-button compact-button" type="button">Logout</button>
+          </div>
+        </div>
+      </details>
+      <div class="brand">
+        <span class="brand-kicker">Eldran</span>
+        <h1>Notizen</h1>
+        <p>Gemeinsame Admin-Notizen als Markdown-Dateien.</p>
+      </div>
+      <section class="upload-panel">
+        <p class="eyebrow">Dateiablage</p>
+        <p id="notesDirectory" class="upload-hint">Wird geladen...</p>
+      </section>
+      <section class="upload-panel">
+        <p class="eyebrow">Notizen</p>
+        <button id="noteCreateButton" class="ghost-button compact-button" type="button">Neue Notiz</button>
+        <div id="notesList" class="chat-list notes-list"></div>
+      </section>
+      <section class="upload-panel automation-panel">
+        <div class="automation-panel-header">
+          <p class="eyebrow">Auto-Aufgaben</p>
+          <button id="automationRefreshButton" class="ghost-button compact-button" type="button">Aktualisieren</button>
+        </div>
+        <p class="upload-hint">Marker: #auto, @codex oder [auto]. Status: [offen], [in arbeit], [erledigt].</p>
+        <div id="automationTasksList" class="automation-task-list"></div>
+      </section>
+    </aside>
+
+    <section class="chat-panel notes-panel">
+      <header class="chat-header">
+        <div>
+          <p class="eyebrow">Editor</p>
+          <h2 id="noteEditorHeading">Notiz waehlen</h2>
+        </div>
+        <div id="notesStatusBadge" class="status-badge">Bereit</div>
+      </header>
+
+      <section class="db-query-panel notes-editor">
+        <label class="draw-control">
+          <span class="file-meta">Titel</span>
+          <input id="noteTitleInput" class="sidebar-input" type="text" maxlength="120" placeholder="Titel">
+        </label>
+        <label class="draw-control notes-content-control">
+          <span class="file-meta">Inhalt</span>
+          <textarea id="noteContentInput" class="db-textarea notes-textarea" spellcheck="true" placeholder="Markdown-Notiz"></textarea>
+        </label>
+        <div class="stack-actions horizontal-actions">
+          <button id="noteSaveButton" class="ghost-button compact-button" type="button">Speichern</button>
+          <button id="noteDeleteButton" class="ghost-button compact-button battlemap-danger-button" type="button">Loeschen</button>
+        </div>
+        <p id="noteFileMeta" class="upload-hint">Keine Datei ausgewaehlt.</p>
+      </section>
+    </section>
+  </main>
+
+  <script src="/static/auth-ui.js?v=25" defer></script>
+  <script src="/static/notes.js?v=2" defer></script>
+</body>
+</html>
