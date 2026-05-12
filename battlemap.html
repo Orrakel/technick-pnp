@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eldran Battlemap</title>
+  <link rel="stylesheet" href="/static/style.css?v=43">
+</head>
+<body>
+  <main id="battlemapAppShell" class="app-shell">
+    <aside id="battlemapSidebar" class="sidebar">
+      <details class="burger-menu">
+        <summary class="burger-button" aria-label="Menue oeffnen"><span class="burger-icon" aria-hidden="true"></span></summary>
+        <div class="burger-menu-panel">
+          <nav class="top-nav burger-nav">
+            <a class="nav-link" data-surface-link="map" href="/Karte">Karte</a>
+            <a class="nav-link active" data-gm-only data-surface-link="battlemap" href="/Battlemap">Battlemap</a>
+            <a class="nav-link" data-nav-link="chat" href="/chat">Chat</a>
+            <a class="nav-link" href="/wiki">Wiki</a>
+            <a class="nav-link hidden" data-admin-only href="/db">Datenbank</a>
+          </nav>
+          <div class="auth-strip burger-auth">
+            <span data-current-user class="file-meta"></span>
+            <button data-logout-button class="ghost-button compact-button" type="button">Logout</button>
+          </div>
+        </div>
+      </details>
+      <div class="brand">
+        <span class="brand-kicker">Eldran</span>
+        <h1>Battlemap Test</h1>
+        <p>Grid, Hindernisse, Token und Bewegungsreichweite fuer den ersten Taktik-Prototypen.</p>
+      </div>
+      <section class="upload-panel">
+        <p class="eyebrow">Projekt</p>
+        <label class="draw-control">
+          <span class="file-meta">Aktives Projekt</span>
+          <select id="projectSelect" class="sidebar-input"></select>
+        </label>
+        <label class="draw-control">
+          <span class="file-meta">Neues Projekt</span>
+          <input id="projectNameInput" class="sidebar-input" type="text" placeholder="Projektname">
+        </label>
+        <button id="projectCreateButton" class="ghost-button compact-button" type="button">Projekt anlegen</button>
+        <div id="projectPlayerList" class="stack-actions"></div>
+        <p id="projectStatus" class="upload-hint">Projekt wird geladen...</p>
+      </section>
+
+      <section id="battlemapSidebarTurnOrderPanel" class="upload-panel battlemap-turn-order-sidebar">
+        <div class="battlemap-turn-order-header">
+          <span class="eyebrow">Zugreihenfolge</span>
+          <span id="battlemapSidebarTurnOrderSummary" class="file-meta">Wird geladen...</span>
+        </div>
+        <div id="battlemapSidebarTurnOrder" class="battlemap-turn-order-list battlemap-turn-order-list-sidebar"></div>
+      </section>
+
+      <section class="upload-panel battlemap-collapsible" data-battlemap-section-id="battlemap-list">
+        <p class="eyebrow battlemap-section-toggle" role="button" tabindex="0">Battlemaps</p>
+        <div class="battlemap-section-body">
+          <div id="battlemapList" class="chat-list"></div>
+          <p id="battlemapListStatus" class="upload-hint">Aktive Battlemap wird geladen.</p>
+        </div>
+      </section>
+
+      <section class="upload-panel battlemap-collapsible" data-battlemap-section-id="battlemap-create">
+        <p class="eyebrow battlemap-section-toggle" role="button" tabindex="0">Neue Battlemap</p>
+        <div class="battlemap-section-body">
+          <label class="draw-control">
+            <span class="file-meta">Name</span>
+            <input id="battlemapCreateName" class="sidebar-input" type="text" placeholder="Ruinenhof">
+          </label>
+          <div class="battlemap-form-grid">
+            <label class="draw-control">
+              <span class="file-meta">Kacheln X</span>
+              <input id="battlemapCreateWidth" class="sidebar-input" type="number" min="4" max="64" value="12">
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Kacheln Y</span>
+              <input id="battlemapCreateHeight" class="sidebar-input" type="number" min="4" max="64" value="8">
+            </label>
+          </div>
+          <div class="battlemap-form-grid">
+            <label class="draw-control">
+              <span class="file-meta">Kachelgroesse</span>
+              <input id="battlemapCreateCellSize" class="sidebar-input" type="number" min="24" max="160" value="72">
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Scaling %</span>
+              <input id="battlemapCreateScale" class="sidebar-input" type="number" min="25" max="300" value="100">
+            </label>
+          </div>
+          <label class="draw-control">
+            <span class="file-meta">Hindernisfarbe</span>
+            <input id="battlemapCreateObstacleColor" class="color-input" type="color" value="#7f858c">
+          </label>
+          <label class="draw-control">
+            <span class="file-meta">Hintergrund</span>
+            <input id="battlemapCreateBackground" class="sidebar-input" type="file" accept="image/*">
+          </label>
+          <button id="battlemapCreateButton" class="ghost-button compact-button" type="button">Battlemap anlegen</button>
+        </div>
+      </section>
+
+      <section class="upload-panel battlemap-collapsible" data-battlemap-section-id="battlemap-config">
+        <p class="eyebrow battlemap-section-toggle" role="button" tabindex="0">Ausgewaehlte Battlemap</p>
+        <div class="battlemap-section-body">
+          <label class="draw-control">
+            <span class="file-meta">Name</span>
+            <input id="battlemapNameInput" class="sidebar-input" type="text" placeholder="Battlemap">
+          </label>
+          <div class="battlemap-form-grid">
+            <label class="draw-control">
+              <span class="file-meta">Kacheln X</span>
+              <input id="battlemapWidthInput" class="sidebar-input" type="number" min="4" max="64">
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Kacheln Y</span>
+              <input id="battlemapHeightInput" class="sidebar-input" type="number" min="4" max="64">
+            </label>
+          </div>
+          <div class="battlemap-form-grid">
+            <label class="draw-control">
+              <span class="file-meta">Kachelgroesse</span>
+              <input id="battlemapCellSizeInput" class="sidebar-input" type="number" min="24" max="160">
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Scaling %</span>
+              <input id="battlemapScaleInput" class="sidebar-input" type="number" min="25" max="300">
+            </label>
+          </div>
+          <label class="draw-control">
+            <span class="file-meta">Hindernisfarbe</span>
+            <input id="battlemapObstacleColorInput" class="color-input" type="color" value="#7f858c">
+          </label>
+          <label class="draw-control">
+            <span class="file-meta">Hintergrund ersetzen</span>
+            <input id="battlemapBackgroundInput" class="sidebar-input" type="file" accept="image/*">
+          </label>
+          <div class="stack-actions">
+            <button id="battlemapSaveButton" class="ghost-button compact-button" type="button">Konfiguration speichern</button>
+            <button id="battlemapActivateButton" class="ghost-button compact-button" type="button">Als Testkarte aktivieren</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="upload-panel battlemap-collapsible" data-battlemap-section-id="battlemap-token-create">
+        <p class="eyebrow battlemap-section-toggle" role="button" tabindex="0">Token</p>
+        <div class="battlemap-section-body">
+          <label class="draw-control">
+            <span class="file-meta">Name</span>
+            <input id="battlemapTokenNameInput" class="sidebar-input" type="text" placeholder="Held 3">
+          </label>
+          <div class="battlemap-form-grid">
+            <label class="draw-control">
+              <span class="file-meta">Typ</span>
+              <select id="battlemapTokenTypeInput" class="sidebar-input">
+                <option value="player">Spieler</option>
+                <option value="enemy">Gegner</option>
+              </select>
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Farbe</span>
+              <input id="battlemapTokenColorInput" class="color-input" type="color" value="#58c4ff">
+            </label>
+          </div>
+          <div class="battlemap-form-grid">
+            <label class="draw-control">
+              <span class="file-meta">Start X</span>
+              <input id="battlemapTokenXInput" class="sidebar-input" type="number" min="0" value="0">
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Start Y</span>
+              <input id="battlemapTokenYInput" class="sidebar-input" type="number" min="0" value="0">
+            </label>
+          </div>
+          <div class="battlemap-form-grid">
+            <label class="draw-control">
+              <span class="file-meta">Bewegung</span>
+              <input id="battlemapTokenMoveInput" class="sidebar-input" type="number" min="0" max="20" value="4">
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Angriff</span>
+              <input id="battlemapTokenAttackInput" class="sidebar-input" type="number" min="0" max="20" value="1">
+            </label>
+          </div>
+          <label class="draw-control">
+            <span class="file-meta">Sichtweite</span>
+            <input id="battlemapTokenVisionInput" class="sidebar-input" type="number" min="1" max="24" value="6">
+          </label>
+          <label class="draw-control">
+            <span class="file-meta">Spieler</span>
+            <select id="battlemapTokenAssignedUserInput" class="sidebar-input">
+              <option value="">Nicht zugewiesen</option>
+            </select>
+          </label>
+          <label class="draw-control">
+            <span class="file-meta">Initiative</span>
+            <input id="battlemapTokenInitiativeInput" class="sidebar-input" type="number" min="0" max="99" value="10">
+          </label>
+          <label class="draw-control">
+            <span class="file-meta">Direkt auf Spielleiter-Ebene</span>
+            <input id="battlemapTokenLayerInput" type="checkbox">
+          </label>
+          <button id="battlemapAddTokenButton" class="ghost-button compact-button" type="button">Token hinzufuegen</button>
+          <p id="battlemapTokenStatus" class="upload-hint">Token als farbige Punkte zum Testen der Bewegung.</p>
+        </div>
+      </section>
+
+      <section class="upload-panel battlemap-collapsible" data-battlemap-section-id="battlemap-token-selected">
+        <p class="eyebrow battlemap-section-toggle" role="button" tabindex="0">Ausgewaehlter Token</p>
+        <div class="battlemap-section-body">
+          <label class="draw-control">
+            <span class="file-meta">Name</span>
+            <input id="battlemapSelectedTokenNameInput" class="sidebar-input" type="text" placeholder="Token waehlen">
+          </label>
+          <div class="battlemap-form-grid">
+            <label class="draw-control">
+              <span class="file-meta">Typ</span>
+              <select id="battlemapSelectedTokenTypeInput" class="sidebar-input">
+                <option value="player">Spieler</option>
+                <option value="enemy">Gegner</option>
+              </select>
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Farbe</span>
+              <input id="battlemapSelectedTokenColorInput" class="color-input" type="color" value="#58c4ff">
+            </label>
+          </div>
+          <div class="battlemap-form-grid">
+            <label class="draw-control">
+              <span class="file-meta">X</span>
+              <input id="battlemapSelectedTokenXInput" class="sidebar-input" type="number" min="0" value="0">
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Y</span>
+              <input id="battlemapSelectedTokenYInput" class="sidebar-input" type="number" min="0" value="0">
+            </label>
+          </div>
+          <div class="battlemap-form-grid">
+            <label class="draw-control">
+              <span class="file-meta">Bewegung</span>
+              <input id="battlemapSelectedTokenMoveInput" class="sidebar-input" type="number" min="0" max="20" value="4">
+            </label>
+            <label class="draw-control">
+              <span class="file-meta">Angriff</span>
+              <input id="battlemapSelectedTokenAttackInput" class="sidebar-input" type="number" min="0" max="20" value="1">
+            </label>
+          </div>
+          <label class="draw-control">
+            <span class="file-meta">Sichtweite</span>
+            <input id="battlemapSelectedTokenVisionInput" class="sidebar-input" type="number" min="1" max="24" value="6">
+          </label>
+          <label class="draw-control">
+            <span class="file-meta">Spieler</span>
+            <select id="battlemapSelectedTokenAssignedUserInput" class="sidebar-input">
+              <option value="">Nicht zugewiesen</option>
+            </select>
+          </label>
+          <label class="draw-control">
+            <span class="file-meta">Initiative</span>
+            <input id="battlemapSelectedTokenInitiativeInput" class="sidebar-input" type="number" min="0" max="99" value="10">
+          </label>
+          <label class="draw-control">
+            <span class="file-meta">Token-Bild</span>
+            <input id="battlemapSelectedTokenImageInput" class="sidebar-input" type="file" accept="image/*">
+          </label>
+          <div class="stack-actions">
+            <button id="battlemapSelectedTokenSaveButton" class="ghost-button compact-button" type="button">Token speichern</button>
+            <button id="battlemapSelectedTokenMoveToggle" class="ghost-button compact-button" type="button">Freies Verschieben aus</button>
+            <button id="battlemapSelectedTokenDeleteButton" class="ghost-button compact-button battlemap-danger-button" type="button">Token loeschen</button>
+          </div>
+          <p id="battlemapSelectedTokenStatus" class="upload-hint">Noch kein Token ausgewaehlt.</p>
+        </div>
+      </section>
+    </aside>
+
+    <section class="chat-panel battlemap-panel">
+      <header class="chat-header">
+        <div>
+          <p class="eyebrow">Taktiktest</p>
+        </div>
+        <div class="battlemap-header-meta">
+          <div id="battlemapRoundBadge" class="status-badge">Runde 1</div>
+          <div id="battlemapTurnBadge" class="status-badge">Wartet auf Auswahl</div>
+          <div id="battlemapStatusBadge" class="status-badge">Bereit</div>
+        </div>
+      </header>
+
+      <div class="battlemap-toolbar">
+        <button id="battlemapBackButton" class="ghost-button compact-button" type="button">Kampf Beenden</button>
+        <button id="battlemapFogToggle" class="ghost-button compact-button" type="button">Nebel aus</button>
+        <button id="battlemapWallModeToggle" class="ghost-button compact-button" type="button">Waende setzen</button>
+        <button id="battlemapDoorModeToggle" class="ghost-button compact-button" type="button">Tueren setzen</button>
+        <button id="battlemapFogDeleteLastButton" class="ghost-button compact-button" type="button">Letztes Element loeschen</button>
+        <button id="battlemapObstacleToggle" class="ghost-button compact-button" type="button">Hindernisse bearbeiten</button>
+        <button id="battlemapObstacleClearButton" class="ghost-button compact-button" type="button">Hindernisse leeren</button>
+        <button id="battlemapSelectionClearButton" class="ghost-button compact-button" type="button">Auswahl loeschen</button>
+        <button id="battlemapUseActionButton" class="ghost-button compact-button" type="button">Runde beenden</button>
+        <label class="draw-control battlemap-zoom-control">
+          <span class="file-meta">Zoom</span>
+          <input id="battlemapZoomInput" class="range-input" type="range" min="25" max="250" step="10" value="50">
+          <span id="battlemapZoomValue" class="file-meta">50 %</span>
+        </label>
+        <span id="battlemapFogInfo" class="file-meta">Nebel inaktiv.</span>
+        <span id="battlemapSelectionInfo" class="file-meta">Kein Token ausgewaehlt.</span>
+      </div>
+
+      <div class="battlemap-music-bar">
+        <div class="music-player-frame">
+          <audio id="battlemapMusicAudio" class="music-player-audio" controls preload="metadata"></audio>
+        </div>
+        <label id="battlemapMusicVolumeWrap" class="draw-control music-volume-wrap hidden">
+          <span class="file-meta">Lautstaerke</span>
+          <button id="battlemapMusicMuteButton" class="ghost-button compact-button" type="button">Mute</button>
+          <input id="battlemapMusicVolumeInput" class="range-input" type="range" min="0" max="100" step="1" value="100">
+        </label>
+        <p id="battlemapMusicSource" class="upload-hint">Keine Musik aktiv.</p>
+        <p id="battlemapMusicStatus" class="upload-hint">Kein Track aktiv.</p>
+        <div id="battlemapMusicManagerWrap" class="hidden">
+          <div class="stack-actions horizontal-actions">
+            <button id="battlemapMusicPlayButton" class="ghost-button compact-button" type="button">Play</button>
+            <button id="battlemapMusicPauseButton" class="ghost-button compact-button" type="button">Pause</button>
+            <button id="battlemapMusicClearButton" class="ghost-button compact-button" type="button">Stoppen</button>
+          </div>
+        </div>
+      </div>
+
+      <section class="upload-panel command-panel">
+        <div class="command-panel-header">
+          <p class="eyebrow">Chat</p>
+          <div class="command-panel-actions">
+            <div id="battlemapCommandChatStatus" class="mini-status">Bereit</div>
+            <button id="battlemapCommandChatClearButton" class="ghost-button compact-button" type="button">Clear</button>
+          </div>
+        </div>
+        <div class="command-panel-body">
+          <div id="battlemapCommandChatMessages" class="command-messages"></div>
+          <form id="battlemapCommandChatForm" class="command-composer">
+            <input id="battlemapCommandChatInput" class="sidebar-input" type="text" placeholder="Nachricht oder /roll 2d20+3" autocomplete="off">
+            <button class="ghost-button compact-button" type="submit">Senden</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="chat-frame battlemap-frame">
+        <div id="battlemapScroller" class="battlemap-scroller">
+          <div id="battlemapStage" class="battlemap-stage">
+            <div id="battlemapBoard" class="battlemap-board">
+              <div id="battlemapBackground" class="battlemap-background"></div>
+              <div id="battlemapGrid" class="battlemap-grid"></div>
+              <div id="battlemapOverlay" class="battlemap-overlay"></div>
+              <div id="battlemapTokenLayer" class="battlemap-token-layer"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="/static/auth-ui.js?v=6" defer></script>
+  <script src="/static/project-selector.js?v=3" defer></script>
+  <script src="/static/music-player.js?v=6" defer></script>
+  <script src="/static/command-chat.js?v=3" defer></script>
+  <script src="/static/battlemap.js?v=24" defer></script>
+</body>
+</html>
