@@ -24,12 +24,19 @@ from storage import (
     create_battlemap,
     create_user,
     create_user_session,
+    change_user_password,
     complete_map_sound_cue,
     create_chat,
+    create_note,
+    create_project_npc,
+    delete_project_actor,
     clear_map_drawings,
+    delete_map_drawing_stroke,
+    delete_user,
     create_map_layer,
     delete_map_overlay,
     delete_map_pin,
+    delete_note,
     delete_chat,
     delete_map,
     delete_battlemap_token,
@@ -81,7 +88,10 @@ from storage import (
     clear_music_state,
     group_map_tokens,
     get_music_file_path,
+    get_note,
     list_music_tracks,
+    list_automation_note_tasks,
+    list_notes,
     save_map_image,
     save_map_overlay,
     save_map_pin,
@@ -92,6 +102,7 @@ from storage import (
     rename_map,
     rename_map_layer,
     create_project,
+    delete_project,
     set_project_player_assignment,
     update_map_layer_fog,
     save_battlemap_background,
@@ -100,6 +111,8 @@ from storage import (
     set_active_battlemap,
     trigger_map_sound_cue,
     update_music_playback,
+    update_note,
+    update_automation_note_status,
     ungroup_map_tokens,
     undo_last_map_drawing_stroke,
     end_battlemap_token_turn,
@@ -118,6 +131,7 @@ from storage import (
     update_battlemap_obstacles,
     update_battlemap_token,
     update_user_role,
+    update_user_password,
     get_character_sheet,
     get_character_sheet_pdf_path,
     list_character_sheets,
@@ -165,8 +179,18 @@ class SqlQueryRequest(BaseModel):
     query: str = Field(min_length=1)
 
 
+class NoteRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+    content: str = ""
+
+
+class AutomationNoteStatusRequest(BaseModel):
+    status: str = Field(pattern="^(offen|in arbeit|erledigt|abgelehnt)$")
+
+
 class CommandChatRequest(BaseModel):
     message: str = Field(min_length=1)
+    visibility: str = Field(default="public", pattern="^(public|gmroll|hiddenroll)$")
 
 
 class RegisterRequest(BaseModel):
@@ -176,7 +200,7 @@ class RegisterRequest(BaseModel):
 
 
 class CreateUserRequest(RegisterRequest):
-    role: str = Field(default="spieler", pattern="^(spieler|spielleiter|admin)$")
+    role: str = Field(default="spieler", pattern="^(spieler|spielleiter|admin|npc|gegner)$")
 
 
 class LoginRequest(BaseModel):
@@ -185,7 +209,18 @@ class LoginRequest(BaseModel):
 
 
 class UpdateUserRoleRequest(BaseModel):
-    role: str = Field(pattern="^(spieler|spielleiter|admin)$")
+    role: str = Field(pattern="^(spieler|spielleiter|admin|npc|gegner)$")
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1)
+    new_password: str = Field(min_length=1)
+    new_password_confirm: str = Field(min_length=1)
+
+
+class SetUserPasswordRequest(BaseModel):
+    password: str = Field(min_length=1)
+    password_confirm: str = Field(min_length=1)
 
 
 class MapPoint(BaseModel):
@@ -245,6 +280,11 @@ class RenameMapRequest(BaseModel):
 class CreateProjectRequest(BaseModel):
     name: str = Field(min_length=1)
     ruleset: str = Field(default="dnd", pattern="^(dnd|nova_gaia)$")
+
+
+class CreateProjectNpcRequest(BaseModel):
+    name: str = Field(min_length=1)
+    role: str = Field(default="npc", pattern="^(npc|gegner|enemy)$")
 
 
 class SetupProjectRequest(BaseModel):
@@ -326,7 +366,9 @@ class BattlemapTokenCreateRequest(BaseModel):
     initiative: int = Field(default=10, ge=0, le=99)
     move_range: int = Field(default=4, ge=0, le=20)
     attack_range: int = Field(default=1, ge=0, le=20)
-    vision_range: int = Field(default=6, ge=1, le=24)
+    vision_range: int = Field(default=6, ge=0, le=24)
+    hp_current: int | None = Field(default=None, ge=0, le=9999)
+    hp_max: int | None = Field(default=None, ge=0, le=9999)
     assigned_user_id: str = ""
     visibility_layer: str = Field(default="public", pattern="^(public|gm)$")
 
@@ -340,7 +382,9 @@ class BattlemapTokenUpdateRequest(BaseModel):
     initiative: int | None = Field(default=None, ge=0, le=99)
     move_range: int | None = Field(default=None, ge=0, le=20)
     attack_range: int | None = Field(default=None, ge=0, le=20)
-    vision_range: int | None = Field(default=None, ge=1, le=24)
+    vision_range: int | None = Field(default=None, ge=0, le=24)
+    hp_current: int | None = Field(default=None, ge=0, le=9999)
+    hp_max: int | None = Field(default=None, ge=0, le=9999)
     assigned_user_id: str | None = None
     visibility_layer: str | None = Field(default=None, pattern="^(public|gm)$")
     ignore_turn_rules: bool = False
@@ -387,8 +431,11 @@ def _require_spielleiter_or_admin(request: Request) -> dict[str, str]:
 def _protected_page(request: Request, file_name: str) -> FileResponse | RedirectResponse:
     if not _is_local_request(request):
         return FileResponse(STATIC_DIR / file_name)
-    if not _current_user_from_request(request):
+    user = _current_user_from_request(request)
+    if not user:
         return RedirectResponse(url="/login", status_code=307)
+    if file_name != "project-setup.html" and _spielleiter_needs_project_setup(user):
+        return RedirectResponse(url="/projekte/neu", status_code=307)
     return FileResponse(STATIC_DIR / file_name)
 
 
@@ -398,14 +445,18 @@ def _is_local_request(request: Request) -> bool:
     return client_host in {"127.0.0.1", "::1", "localhost"} and host_header in {"127.0.0.1", "::1", "localhost"}
 
 
-def _local_only_page(request: Request, file_name: str) -> FileResponse:
+def _local_only_page(request: Request, file_name: str) -> FileResponse | RedirectResponse:
     user = _current_user_from_request(request)
     if not _is_local_request(request) and (not user or user.get("role") != "admin"):
         raise HTTPException(status_code=403, detail="Diese Seite ist nur lokal erreichbar.")
+    if file_name != "project-setup.html" and _spielleiter_needs_project_setup(user):
+        return RedirectResponse(url="/projekte/neu", status_code=307)
     return FileResponse(STATIC_DIR / file_name)
 
 
 def _admin_page(request: Request, file_name: str) -> FileResponse | RedirectResponse:
+    if not _is_local_request(request):
+        return FileResponse(STATIC_DIR / file_name)
     user = _current_user_from_request(request)
     if not user:
         return RedirectResponse(url="/login", status_code=307)
@@ -414,7 +465,18 @@ def _admin_page(request: Request, file_name: str) -> FileResponse | RedirectResp
     return FileResponse(STATIC_DIR / file_name)
 
 
+def _spielleiter_needs_project_setup(user: dict[str, str] | None) -> bool:
+    if not user or user.get("role") != "spielleiter":
+        return False
+    try:
+        return not list_projects(user).get("projects")
+    except Exception:
+        return False
+
+
 def _default_page_for_user(user: dict[str, str]) -> str:
+    if _spielleiter_needs_project_setup(user):
+        return "/projekte/neu"
     return "/karte" if user.get("role") == "admin" else "/Karte"
 
 
@@ -437,9 +499,9 @@ def _resolve_assigned_player(assigned_user_id: str) -> dict[str, str]:
     if not normalized_id:
         return {"id": "", "username": ""}
     for user in list_users():
-        if user["id"] == normalized_id and user["role"] == "spieler":
+        if user["id"] == normalized_id and user["role"] in {"spieler", "npc", "gegner"}:
             return {"id": user["id"], "username": user["username"]}
-    raise HTTPException(status_code=400, detail="Ausgewaehlter Spieler nicht gefunden.")
+    raise HTTPException(status_code=400, detail="Ausgewaehlter Spieler, NPC oder Gegner nicht gefunden.")
 
 
 def _can_move_map_marker(user: dict[str, str], pin: dict[str, object] | None) -> bool:
@@ -473,11 +535,11 @@ def _can_move_map_group(user: dict[str, str], pin: dict[str, object] | None) -> 
 
 @app.get("/")
 async def index(request: Request):
-    if _is_local_request(request):
-        return RedirectResponse(url="/karte", status_code=307)
     user = _current_user_from_request(request)
     if user:
         return RedirectResponse(url=_default_page_for_user(user), status_code=307)
+    if _is_local_request(request):
+        return RedirectResponse(url="/karte", status_code=307)
     return RedirectResponse(url="/login", status_code=307)
 
 
@@ -501,6 +563,19 @@ async def character_sheet_page(request: Request):
     return _protected_page(request, "charakterbogen.html")
 
 
+@app.get("/charakterbogen/ansicht")
+async def character_sheet_view_page(request: Request):
+    return _protected_page(request, "character-sheet-view.html")
+
+
+@app.get("/charaktersheet")
+@app.get("/charaktersheet/ansicht")
+@app.get("/character-sheet")
+@app.get("/character-sheet/view")
+async def character_sheet_view_alias_page(request: Request):
+    return _protected_page(request, "character-sheet-view.html")
+
+
 @app.get("/charakter-builder")
 async def character_builder_page(request: Request):
     return _protected_page(request, "charakter-builder.html")
@@ -509,6 +584,17 @@ async def character_builder_page(request: Request):
 @app.get("/Charakterbogen")
 async def remote_character_sheet_page(request: Request):
     return _protected_page(request, "charakterbogen.html")
+
+
+@app.get("/Charakterbogen/Ansicht")
+async def remote_character_sheet_view_page(request: Request):
+    return _protected_page(request, "character-sheet-view.html")
+
+
+@app.get("/Charaktersheet")
+@app.get("/Charaktersheet/Ansicht")
+async def remote_character_sheet_view_alias_page(request: Request):
+    return _protected_page(request, "character-sheet-view.html")
 
 
 @app.get("/Charakter-Builder")
@@ -521,6 +607,11 @@ async def db_page(request: Request):
     return _admin_page(request, "db.html")
 
 
+@app.get("/notizen")
+async def notes_page(request: Request):
+    return _admin_page(request, "notes.html")
+
+
 @app.get("/projekte/neu")
 async def project_setup_page(request: Request):
     return FileResponse(STATIC_DIR / "project-setup.html")
@@ -528,6 +619,8 @@ async def project_setup_page(request: Request):
 
 @app.get("/karte")
 async def map_page(request: Request):
+    if not _is_local_request(request):
+        return RedirectResponse(url="/Karte", status_code=307)
     return _local_only_page(request, "map.html")
 
 
@@ -628,6 +721,15 @@ async def set_active_project_endpoint(request: Request, payload: SetActiveProjec
     return {"project": project}
 
 
+@app.delete("/api/projects/{project_id}")
+async def delete_project_endpoint(project_id: str, request: Request):
+    user = _require_admin(request)
+    try:
+        return delete_project(project_id, user)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.get("/api/projects/{project_id}/players")
 async def project_players_endpoint(project_id: str, request: Request):
     user = _require_spielleiter_or_admin(request)
@@ -646,6 +748,25 @@ async def project_player_assignment_endpoint(project_id: str, request: Request, 
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return result
+
+
+@app.post("/api/projects/{project_id}/npcs")
+async def create_project_npc_endpoint(project_id: str, request: Request, payload: CreateProjectNpcRequest):
+    user = _require_spielleiter_or_admin(request)
+    try:
+        npc = create_project_npc(project_id, payload.name, user, actor_role=payload.role)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"npc": npc}
+
+
+@app.delete("/api/projects/{project_id}/actors/{user_id}")
+async def delete_project_actor_endpoint(project_id: str, user_id: str, request: Request):
+    user = _require_spielleiter_or_admin(request)
+    try:
+        return delete_project_actor(project_id, user_id, user)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.get("/api/character-sheets")
@@ -737,8 +858,24 @@ async def auth_login(payload: LoginRequest, request: Request):
         raise HTTPException(status_code=401, detail="Login fehlgeschlagen.")
 
     token = create_user_session(user["id"])
-    redirect_to = _default_page_for_user(user) if _is_local_request(request) else "/Karte"
+    default_redirect = _default_page_for_user(user)
+    redirect_to = default_redirect if _is_local_request(request) or default_redirect == "/projekte/neu" else "/Karte"
     return {"user": user, "token": token, "redirect_to": redirect_to}
+
+
+@app.patch("/api/auth/password")
+async def auth_change_password(request: Request, payload: ChangePasswordRequest):
+    user = _require_user(request)
+    if user.get("id") == LOCAL_ADMIN_USER["id"]:
+        raise HTTPException(status_code=400, detail="Der lokale Admin hat kein aenderbares Passwort.")
+    if payload.new_password != payload.new_password_confirm:
+        raise HTTPException(status_code=400, detail="Passwort-Bestaetigung stimmt nicht ueberein.")
+    try:
+        updated_user = change_user_password(user["id"], payload.current_password, payload.new_password)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    token = create_user_session(updated_user["id"])
+    return {"user": updated_user, "token": token}
 
 
 @app.post("/api/auth/logout")
@@ -780,6 +917,87 @@ async def update_user_role_endpoint(user_id: str, request: Request, payload: Upd
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"user": user}
+
+
+@app.patch("/api/users/{user_id}/password")
+async def update_user_password_endpoint(user_id: str, request: Request, payload: SetUserPasswordRequest):
+    _require_admin(request)
+    if payload.password != payload.password_confirm:
+        raise HTTPException(status_code=400, detail="Passwort-Bestaetigung stimmt nicht ueberein.")
+    try:
+        user = update_user_password(user_id, payload.password)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"user": user}
+
+
+@app.delete("/api/users/{user_id}")
+async def delete_user_endpoint(user_id: str, request: Request):
+    acting_user = _require_admin(request)
+    if str(acting_user.get("id") or "") == str(user_id or "").strip():
+        raise HTTPException(status_code=400, detail="Du kannst deinen eigenen Account nicht loeschen.")
+    try:
+        delete_user(user_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"deleted": True}
+
+
+@app.get("/api/notes")
+async def notes_endpoint(request: Request):
+    _require_admin(request)
+    return list_notes()
+
+
+@app.post("/api/notes")
+async def create_note_endpoint(payload: NoteRequest, request: Request):
+    user = _require_admin(request)
+    try:
+        return create_note(payload.title, payload.content, updated_by=user.get("username", ""))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/notes/automation/tasks")
+async def automation_note_tasks_endpoint(request: Request):
+    _require_admin(request)
+    return list_automation_note_tasks()
+
+
+@app.patch("/api/notes/automation/tasks/{note_id}/status")
+async def update_automation_note_status_endpoint(note_id: str, payload: AutomationNoteStatusRequest, request: Request):
+    user = _require_admin(request)
+    try:
+        return update_automation_note_status(note_id, payload.status, updated_by=user.get("username", ""))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/notes/{note_id}")
+async def note_endpoint(note_id: str, request: Request):
+    _require_admin(request)
+    try:
+        return get_note(note_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.put("/api/notes/{note_id}")
+async def update_note_endpoint(note_id: str, payload: NoteRequest, request: Request):
+    user = _require_admin(request)
+    try:
+        return update_note(note_id, payload.title, payload.content, updated_by=user.get("username", ""))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.delete("/api/notes/{note_id}")
+async def delete_note_endpoint(note_id: str, request: Request):
+    _require_admin(request)
+    try:
+        return delete_note(note_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @app.get("/api/files")
@@ -997,8 +1215,20 @@ async def delete_map_layer_fog_door_endpoint(map_id: str, layer_id: str, door_id
 
 @app.get("/api/battlemaps")
 async def battlemaps(request: Request):
-    _require_user(request)
-    return list_battlemaps()
+    user = _require_user(request)
+    payload = list_battlemaps()
+    include_gm_layer = user.get("role") in {"spielleiter", "admin"}
+    return {
+        **payload,
+        "battlemaps": [
+            filter_battlemap_for_visibility(
+                battlemap,
+                include_gm_layer=include_gm_layer,
+                viewer_user=user,
+            )
+            for battlemap in list(payload.get("battlemaps") or [])
+        ],
+    }
 
 
 @app.get("/api/battlemaps/{battlemap_id}")
@@ -1010,6 +1240,7 @@ async def battlemap_detail(battlemap_id: str, request: Request):
     battlemap = filter_battlemap_for_visibility(
         battlemap,
         include_gm_layer=user.get("role") in {"spielleiter", "admin"},
+        viewer_user=user,
     )
     return {"battlemap": battlemap}
 
@@ -1296,7 +1527,7 @@ async def add_battlemap_token_endpoint(
     payload: BattlemapTokenCreateRequest,
 ):
     _require_spielleiter_or_admin(request)
-    assigned_player = _resolve_assigned_player(payload.assigned_user_id) if payload.type == "player" else {"id": "", "username": ""}
+    assigned_player = _resolve_assigned_player(payload.assigned_user_id) if payload.assigned_user_id else {"id": "", "username": ""}
     try:
         battlemap = add_battlemap_token(
             battlemap_id,
@@ -1309,6 +1540,8 @@ async def add_battlemap_token_endpoint(
             payload.move_range,
             payload.attack_range,
             payload.vision_range,
+            payload.hp_current,
+            payload.hp_max,
             assigned_player["id"],
             assigned_player["username"],
             payload.visibility_layer,
@@ -1335,7 +1568,7 @@ async def update_battlemap_token_endpoint(
             existing_battlemap = get_battlemap(battlemap_id) or {}
             token = next((item for item in list(existing_battlemap.get("tokens") or []) if str(item.get("id") or "") == token_id), None)
             token_type = str(token.get("type") or "player") if token else "player"
-        resolved_assigned_player = _resolve_assigned_player(payload.assigned_user_id) if token_type == "player" else {"id": "", "username": ""}
+        resolved_assigned_player = _resolve_assigned_player(payload.assigned_user_id) if payload.assigned_user_id else {"id": "", "username": ""}
     try:
         battlemap = update_battlemap_token(
             battlemap_id,
@@ -1349,6 +1582,8 @@ async def update_battlemap_token_endpoint(
             move_range=payload.move_range,
             attack_range=payload.attack_range,
             vision_range=payload.vision_range,
+            hp_current=payload.hp_current,
+            hp_max=payload.hp_max,
             assigned_user_id=resolved_assigned_player["id"] if resolved_assigned_player is not None else None,
             assigned_username=resolved_assigned_player["username"] if resolved_assigned_player is not None else None,
             visibility_layer=payload.visibility_layer,
@@ -1451,8 +1686,20 @@ async def map_pins(request: Request, map_id: str = "", layer_id: str = "", show_
 
 
 @app.get("/api/map-token-users")
-async def map_token_users(request: Request):
-    _require_spielleiter_or_admin(request)
+async def map_token_users(request: Request, include_npcs: bool = False):
+    user = _require_spielleiter_or_admin(request)
+    if include_npcs:
+        try:
+            roster = list_character_sheets(acting_user=user)
+            return {
+                "users": [
+                    {"id": sheet["user_id"], "username": sheet["username"], "role": sheet.get("role", "spieler")}
+                    for sheet in roster.get("sheets", [])
+                    if str(sheet.get("role") or "spieler") in {"spieler", "npc", "gegner"}
+                ]
+            }
+        except ValueError:
+            return {"users": []}
     return {"users": [user for user in list_users() if user["role"] == "spieler"]}
 
 
@@ -1529,7 +1776,7 @@ async def command_chat_messages(request: Request):
 async def command_chat_post(request: Request, payload: CommandChatRequest):
     user = _require_user(request)
     try:
-        messages = add_command_message(user["username"], payload.message, user.get("role", ""))
+        messages = add_command_message(user["username"], payload.message, user.get("role", ""), payload.visibility)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"messages": messages}
@@ -1774,6 +2021,24 @@ async def delete_map_drawings(request: Request, map_id: str = "", layer_id: str 
     _require_spielleiter_or_admin(request)
     clear_map_drawings(map_id or None, layer_id or None)
     return {"cleared": True}
+
+
+@app.delete("/api/map-drawings/{stroke_id}")
+async def delete_map_drawing_stroke_endpoint(stroke_id: str, request: Request):
+    user = _require_user(request)
+    try:
+        stroke = delete_map_drawing_stroke(
+            stroke_id,
+            username=user.get("username", ""),
+            can_delete_any=user.get("role") in {"admin", "spielleiter"},
+        )
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not stroke:
+        raise HTTPException(status_code=404, detail="Strich nicht gefunden.")
+    return {"deleted": True, "stroke": stroke}
 
 
 @app.post("/api/map-drawings/undo")
